@@ -12,6 +12,7 @@ export async function run(): Promise<void> {
     core.info('Input issue: ' + issue)
 
     let number = github.context.issue.number
+    if (number == undefined) number = -1
     core.info('Obtained issue number: ' + number)
   } catch (error) {
     // Fail the workflow run if an error occurs
