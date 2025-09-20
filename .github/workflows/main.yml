@@ -20,7 +20,7 @@ jobs:
           distribution: 'liberica'
           java-version: 21
       - name: setup aya
-        uses: 'HoshinoTented/actions'
+        uses: 'HoshinoTented/actions@main'
         with:
           version: 'nightly-build'
           token: ${{ secrets.GITHUB_TOKEN }}
