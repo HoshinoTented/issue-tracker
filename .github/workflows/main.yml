@@ -16,4 +16,5 @@ jobs:
       - name: run tracker
         uses: ./
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           issue: ${{ github.event.issue.number }}

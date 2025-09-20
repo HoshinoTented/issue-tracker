@@ -31294,10 +31294,7 @@ async function trackOne(token, owner, repo, issue, mark) {
 async function run() {
     try {
         const issue = coreExports.getInput('issue');
-        const token = process.env['GITHUB_TOKEN'];
-        if (token == undefined) {
-            throw new Error('Environment variable GITHUB_TOKEN is undefined');
-        }
+        const token = coreExports.getInput('token');
         var issue_number;
         if (issue == '')
             issue_number = undefined;

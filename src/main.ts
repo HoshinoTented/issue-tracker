@@ -10,10 +10,7 @@ import { track } from './tracker.js'
 export async function run(): Promise<void> {
   try {
     const issue = core.getInput('issue')
-    const token = process.env['GITHUB_TOKEN']
-    if (token == undefined) {
-      throw new Error('Environment variable GITHUB_TOKEN is undefined')
-    }
+    const token = core.getInput('token')
 
     var issue_number: number | undefined
     if (issue == '') issue_number = undefined

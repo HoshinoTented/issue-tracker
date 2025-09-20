@@ -9,6 +9,9 @@ branding:
 
 # Define your inputs here.
 inputs:
+  token:
+    description: Github token
+    required: true
   issue:
     description: the url of target issue, 'ALL' if track all issue
     default: 'ALL'
