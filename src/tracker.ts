@@ -1,15 +1,20 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 
-const TRACKING_LABEL = "tracking"
+const TRACKING_LABEL = 'tracking'
 
-export async function track(token: string, owner: string, repo: string, issue?: number) {
+export async function track(
+  token: string,
+  owner: string,
+  repo: string,
+  issue?: number
+) {
   if (issue == undefined) {
     const octokit = github.getOctokit(token)
     const { data: issueList } = await octokit.rest.issues.listForRepo({
       owner: owner,
       repo: repo,
-      state: "open",
+      state: 'open',
       labels: TRACKING_LABEL
     })
 
@@ -25,18 +30,24 @@ export async function track(token: string, owner: string, repo: string, issue?: 
 /**
  * @param mark whether mark the issue as tracking, should be false if issue-tracker is triggered by push on main branch
  */
-async function trackOne(token: string, owner: string, repo: string, issue: number, mark: boolean): Promise<void> {
+async function trackOne(
+  token: string,
+  owner: string,
+  repo: string,
+  issue: number,
+  mark: boolean
+): Promise<void> {
   const octokit = github.getOctokit(token)
 
   let job = null
 
   if (mark) {
-    // FIXME: Don't mark until aya says it enables issue tracker, but for now we just mark for all 
+    // FIXME: Don't mark until aya says it enables issue tracker, but for now we just mark for all
     job = octokit.rest.issues.addLabels({
       owner: owner,
       repo: repo,
       issue_number: issue,
-      labels: [ TRACKING_LABEL ]
+      labels: [TRACKING_LABEL]
     })
   }
 
@@ -46,7 +57,7 @@ async function trackOne(token: string, owner: string, repo: string, issue: numbe
     issue_number: issue
   })
 
-  core.info("Tracking: " + issue)
-  core.info("" + issueData.body)
+  core.info('Tracking: ' + issue)
+  core.info('' + issueData.body)
   if (job != null) await job
 }

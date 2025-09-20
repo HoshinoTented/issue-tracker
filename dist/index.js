@@ -31241,6 +31241,51 @@ function requireGithub () {
 
 var githubExports = requireGithub();
 
+const TRACKING_LABEL = 'tracking';
+async function track(token, owner, repo, issue) {
+    if (issue == undefined) {
+        const octokit = githubExports.getOctokit(token);
+        const { data: issueList } = await octokit.rest.issues.listForRepo({
+            owner: owner,
+            repo: repo,
+            state: 'open',
+            labels: TRACKING_LABEL
+        });
+        for (const i of issueList) {
+            // maybe we can reuse `i` instead of query again, but i can't find tht type of `i`
+            await trackOne(token, owner, repo, i.number, false);
+        }
+    }
+    else {
+        await trackOne(token, owner, repo, issue, true);
+    }
+}
+/**
+ * @param mark whether mark the issue as tracking, should be false if issue-tracker is triggered by push on main branch
+ */
+async function trackOne(token, owner, repo, issue, mark) {
+    const octokit = githubExports.getOctokit(token);
+    let job = null;
+    if (mark) {
+        // FIXME: Don't mark until aya says it enables issue tracker, but for now we just mark for all
+        job = octokit.rest.issues.addLabels({
+            owner: owner,
+            repo: repo,
+            issue_number: issue,
+            labels: [TRACKING_LABEL]
+        });
+    }
+    const { data: issueData } = await octokit.rest.issues.get({
+        owner: owner,
+        repo: repo,
+        issue_number: issue
+    });
+    coreExports.info('Tracking: ' + issue);
+    coreExports.info('' + issueData.body);
+    if (job != null)
+        await job;
+}
+
 /**
  * The main function for the action.
  *
@@ -31249,9 +31294,16 @@ var githubExports = requireGithub();
 async function run() {
     try {
         const issue = coreExports.getInput('issue');
-        coreExports.info('Input issue: ' + issue);
-        let number = githubExports.context.issue.number;
-        coreExports.info('Obtained issue number: ' + number);
+        const token = process.env['GITHUB_TOKEN'];
+        if (token == undefined) {
+            throw new Error('Environment variable GITHUB_TOKEN is undefined');
+        }
+        var issue_number;
+        if (issue == '')
+            issue_number = undefined;
+        else
+            issue_number = parseInt(issue);
+        track(token, githubExports.context.repo.owner, githubExports.context.repo.repo, issue_number);
     }
     catch (error) {
         // Fail the workflow run if an error occurs
