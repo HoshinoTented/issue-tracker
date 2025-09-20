@@ -1,6 +1,6 @@
-name: The name of your action here
-description: Provide a description here
-author: Your name or organization here
+name: Aya Issue Tracker
+description: Track status of all aya issues
+author: aya-prover
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
@@ -9,10 +9,9 @@ branding:
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: Your input description here
-    required: true
-    default: '1000'
+  issue:
+    description: the url of target issue, 'ALL' if track all issue
+    default: 'ALL'
 
 # Define your outputs here.
 outputs:
