@@ -1,5 +1,6 @@
 export const ayaSrcDir = 'src'
-export const toolName = 'aya'
+export const ayaToolName = 'aya'
+export const semverNightly = '0.0.0'
 export const cliFileName = 'cli-fatjar.jar'
 export const versionNightly = 'nightly-build'
 export const TRACK_DIR = 'issue-tracker-dir'

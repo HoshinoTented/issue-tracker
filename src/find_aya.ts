@@ -1,6 +1,6 @@
 import * as tc from '@actions/tool-cache'
 import * as exec from '@actions/exec'
-import { toolName, cliFileName, versionNightly } from './constants.js'
+import { ayaToolName, cliFileName, semverNightly } from './constants.js'
 import path from 'path'
 import fs from 'fs'
 
@@ -21,10 +21,10 @@ export class Aya {
 }
 
 export function findAya(): Aya {
-  const ayaHome = tc.find(toolName, versionNightly)
+  const ayaHome = tc.find(ayaToolName, semverNightly)
   const ayaJar = path.join(ayaHome, cliFileName)
   if (!fs.existsSync(ayaJar)) {
-    throw new Error('Aya not found: ' + ayaJar)
+    throw new Error(`Aya not found for version ${semverNightly}: ${ayaJar}`)
   }
 
   return new Aya(ayaJar)

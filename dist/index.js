@@ -33816,9 +33816,9 @@ var toolCacheExports = requireToolCache();
 
 var execExports = requireExec();
 
-const toolName = 'aya';
+const ayaToolName = 'aya';
+const semverNightly = '0.0.0';
 const cliFileName = 'cli-fatjar.jar';
-const versionNightly = 'nightly-build';
 const TRACK_DIR = 'issue-tracker-dir';
 const ISSUE_FILE = 'issue.md';
 const TRACKING_LABEL = 'tracking';
@@ -33837,10 +33837,10 @@ class Aya {
     }
 }
 function findAya() {
-    const ayaHome = toolCacheExports.find(toolName, versionNightly);
+    const ayaHome = toolCacheExports.find(ayaToolName, semverNightly);
     const ayaJar = path.join(ayaHome, cliFileName);
     if (!require$$1.existsSync(ayaJar)) {
-        throw new Error('Aya not found: ' + ayaJar);
+        throw new Error(`Aya not found for version ${semverNightly}: ${ayaJar}`);
     }
     return new Aya(ayaJar);
 }
