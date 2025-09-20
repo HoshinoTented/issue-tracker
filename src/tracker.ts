@@ -10,6 +10,8 @@ export async function track(
   issue?: number
 ) {
   if (issue == undefined) {
+    core.info("'issue' is not specified, re-run all tracked issues.")
+
     const octokit = github.getOctokit(token)
     const { data: issueList } = await octokit.rest.issues.listForRepo({
       owner: owner,
@@ -37,6 +39,8 @@ async function trackOne(
   issue: number,
   mark: boolean
 ): Promise<void> {
+  core.info((mark ? 'Track' : 'Re-run') + ' issue #' + issue)
+
   const octokit = github.getOctokit(token)
 
   let job = null

@@ -31244,6 +31244,7 @@ var githubExports = requireGithub();
 const TRACKING_LABEL = 'tracking';
 async function track(token, owner, repo, issue) {
     if (issue == undefined) {
+        coreExports.info("'issue' is not specified, re-run all tracked issues.");
         const octokit = githubExports.getOctokit(token);
         const { data: issueList } = await octokit.rest.issues.listForRepo({
             owner: owner,
@@ -31264,6 +31265,7 @@ async function track(token, owner, repo, issue) {
  * @param mark whether mark the issue as tracking, should be false if issue-tracker is triggered by push on main branch
  */
 async function trackOne(token, owner, repo, issue, mark) {
+    coreExports.info((mark ? 'Track' : 'Re-run') + ' issue #' + issue);
     const octokit = githubExports.getOctokit(token);
     let job = null;
     if (mark) {
