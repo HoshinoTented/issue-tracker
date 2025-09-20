@@ -1,0 +1,19 @@
+name: Test Action
+
+on:
+  push:
+    branches: [main]
+  issues:
+    types: [edited]
+
+jobs:
+  run-tracker:
+    name: Run Tracker
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: checkout
+        uses: 'actions/checkout@v4'
+      - name: run tracker
+        uses: ./
+        with:
+          issue: ${{ github.event.issue.number }}
