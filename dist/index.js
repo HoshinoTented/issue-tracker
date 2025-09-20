@@ -31250,7 +31250,8 @@ async function run() {
     try {
         const issue = coreExports.getInput('issue');
         coreExports.info('Input issue: ' + issue);
-        coreExports.info('Obtained issue number: ' + githubExports.context.issue.number.toString());
+        let number = githubExports.context.issue.number;
+        coreExports.info('Obtained issue number: ' + number);
     }
     catch (error) {
         // Fail the workflow run if an error occurs
