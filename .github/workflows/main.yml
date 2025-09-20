@@ -8,7 +8,9 @@ on:
 
 jobs:
   run-tracker:
-    permissions: read-all
+    permissions:
+      contents: read
+      issues: write
     name: Run Tracker
     runs-on: [ubuntu-latest]
     steps:
