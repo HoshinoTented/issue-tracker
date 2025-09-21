@@ -33864,9 +33864,14 @@ function makeReport(setupResult, output) {
   The following aya files are detected: ${fileList}
   Aya Version: \`${setupResult.version}\`
 
-  Output:
+  Exit code: ${output.exitCode}
+  Stdout:
   \`\`\`plaintext
-  ${output}
+  ${output.stdout}
+  \`\`\`
+  Stderr:
+  \`\`\`plaintext
+  ${output.stderr}
   \`\`\`
   `;
 }
@@ -33948,9 +33953,9 @@ async function trackOne(aya, token, owner, repo, issue, mark) {
             }
             // TODO: we need to setup aya of target version, but we have nightly only
             coreExports.info('Run test library');
-            const { stderr: errOut } = await aya.execOutput('--remake', trackerWd);
+            const output = await aya.execOutput('--remake', trackerWd);
             coreExports.info('Make and publish report');
-            const report = makeReport(setupResult, errOut);
+            const report = makeReport(setupResult, output);
             await publishReport(token, owner, repo, issue, report);
         }
         else {

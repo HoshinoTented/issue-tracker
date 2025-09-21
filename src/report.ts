@@ -1,6 +1,7 @@
 import { GITHUB_ACTION_BOT_ID } from './constants.js'
 import { SetupResult } from './types.js'
 import github from '@actions/github'
+import exec from '@actions/exec'
 
 /**
  * Make a report, ends with new line
@@ -9,16 +10,24 @@ import github from '@actions/github'
  * @param output the output of run
  * @returns report
  */
-export function makeReport(setupResult: SetupResult, output: string): string {
+export function makeReport(
+  setupResult: SetupResult,
+  output: exec.ExecOutput
+): string {
   // TODO: extends to multi-version case, but this is good for now.
   const fileList = setupResult.files.map((v, i, a) => '`' + v + '`').join(' ')
   return `
   The following aya files are detected: ${fileList}
   Aya Version: \`${setupResult.version}\`
 
-  Output:
+  Exit code: ${output.exitCode}
+  Stdout:
   \`\`\`plaintext
-  ${output}
+  ${output.stdout}
+  \`\`\`
+  Stderr:
+  \`\`\`plaintext
+  ${output.stderr}
   \`\`\`
   `
 }

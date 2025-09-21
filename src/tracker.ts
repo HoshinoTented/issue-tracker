@@ -82,10 +82,10 @@ async function trackOne(
 
       // TODO: we need to setup aya of target version, but we have nightly only
       core.info('Run test library')
-      const { stderr: errOut } = await aya.execOutput('--remake', trackerWd)
+      const output = await aya.execOutput('--remake', trackerWd)
 
       core.info('Make and publish report')
-      const report = makeReport(setupResult, errOut)
+      const report = makeReport(setupResult, output)
       await publishReport(token, owner, repo, issue, report)
     } else {
       core.info(
