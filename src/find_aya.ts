@@ -21,7 +21,9 @@ export class Aya {
 }
 
 export function findAya(): Aya {
-  const ayaHome = tc.find(ayaToolName, semverNightly)
+  const versions = tc.findAllVersions(ayaToolName)
+  if (versions.length == 1) throw new Error('No aya is found')
+  const ayaHome = tc.find(ayaToolName, versions[0])
   const ayaJar = path.join(ayaHome, cliFileName)
   if (!fs.existsSync(ayaJar)) {
     throw new Error(`Aya not found for version ${semverNightly}: ${ayaJar}`)

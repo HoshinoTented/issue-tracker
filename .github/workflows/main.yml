@@ -21,6 +21,7 @@ jobs:
           refs: main
           token: ${{ secrets.PAT }}
       - name: setup aya
+        id: setup-aya
         uses: 'HoshinoTented/actions@main'
         with:
           refs: 'issue-checker'

@@ -33837,7 +33837,10 @@ class Aya {
     }
 }
 function findAya() {
-    const ayaHome = toolCacheExports.find(ayaToolName, semverNightly);
+    const versions = toolCacheExports.findAllVersions(ayaToolName);
+    if (versions.length == 1)
+        throw new Error('No aya is found');
+    const ayaHome = toolCacheExports.find(ayaToolName, versions[0]);
     const ayaJar = path.join(ayaHome, cliFileName);
     if (!require$$1.existsSync(ayaJar)) {
         throw new Error(`Aya not found for version ${semverNightly}: ${ayaJar}`);
