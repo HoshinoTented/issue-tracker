@@ -8,6 +8,9 @@ on:
 
 jobs:
   run-tracker:
+    defaults:
+      run:
+        shell: bash
     permissions:
       contents: read
       issues: write
@@ -28,6 +31,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: checkout
         uses: 'actions/checkout@v4'
+      - run: ls /opt/hostedtoolcache/aya
       - name: run tracker
         uses: ./
         with:
