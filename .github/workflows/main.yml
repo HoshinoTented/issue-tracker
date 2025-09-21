@@ -14,15 +14,10 @@ jobs:
     name: Run Tracker
     runs-on: [ubuntu-latest]
     steps:
-      - name: setup java
-        uses: 'actions/setup-java@v4'
-        with:
-          distribution: 'liberica'
-          java-version: 21
       - name: setup aya
         uses: 'HoshinoTented/actions@main'
         with:
-          version: 'nightly-build'
+          refs: 'issue-tracker'
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: checkout
         uses: 'actions/checkout@v4'
