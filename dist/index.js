@@ -33838,7 +33838,7 @@ class Aya {
 }
 function findAya() {
     const versions = toolCacheExports.findAllVersions(ayaToolName);
-    if (versions.length == 1)
+    if (versions.length == 0)
         throw new Error('No aya is found');
     const ayaHome = toolCacheExports.find(ayaToolName, versions[0]);
     const ayaJar = path.join(ayaHome, cliFileName);

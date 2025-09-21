@@ -22,7 +22,7 @@ export class Aya {
 
 export function findAya(): Aya {
   const versions = tc.findAllVersions(ayaToolName)
-  if (versions.length == 1) throw new Error('No aya is found')
+  if (versions.length == 0) throw new Error('No aya is found')
   const ayaHome = tc.find(ayaToolName, versions[0])
   const ayaJar = path.join(ayaHome, cliFileName)
   if (!fs.existsSync(ayaJar)) {
