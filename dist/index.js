@@ -33953,7 +33953,7 @@ async function trackOne(aya, token, owner, repo, issue, mark) {
             }
             // TODO: we need to setup aya of target version, but we have nightly only
             coreExports.info('Run test library');
-            const output = await aya.execOutput('--remake', trackerWd);
+            const output = await aya.execOutput('--remake', '--ascii-only', trackerWd);
             coreExports.info('Make and publish report');
             const report = makeReport(setupResult, output);
             await publishReport(token, owner, repo, issue, report);
