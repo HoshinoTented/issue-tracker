@@ -33985,10 +33985,10 @@ async function parseAndSetupTest(aya, wd, trackDir, content) {
     }
     // not sure if this works on windows/macOS
     const lines = stdout.split('\n');
-    if (lines.length != 2) {
+    if (lines.length < 2) {
         throw new Error('Broken output while setting up issue project:\n' + stdout);
     }
-    const [version, rawFiles] = lines;
+    const [version, rawFiles, ..._] = lines;
     const files = rawFiles.split(' ');
     return {
         version: version,
