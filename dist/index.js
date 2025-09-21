@@ -33833,7 +33833,9 @@ class Aya {
         return execExports.exec('java', ['-jar', this.cliJar, ...args]);
     }
     execOutput(...args) {
-        return execExports.getExecOutput('java', ['-jar', this.cliJar, ...args]);
+        return execExports.getExecOutput('java', ['-jar', this.cliJar, ...args], {
+            ignoreReturnCode: true
+        });
     }
 }
 function findAya() {
