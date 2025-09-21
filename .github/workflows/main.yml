@@ -14,6 +14,11 @@ jobs:
     name: Run Tracker
     runs-on: [ubuntu-latest]
     steps:
+      - name: checkout setup-aya
+        uses: 'actions/checkout@v4'
+        with:
+          repository: HoshinoTented/actions
+          refs: main
       - name: setup aya
         uses: 'HoshinoTented/actions@main'
         with:
