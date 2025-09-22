@@ -1,4 +1,4 @@
 export type SetupResult = {
-  version: string
+  version: string | null
   files: string[]
 }

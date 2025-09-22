@@ -16,6 +16,7 @@ export async function track(
   issue?: number
 ) {
   const aya = findAya()
+  const fails: number[] = []
 
   if (issue == undefined) {
     core.info("'issue' is not specified, re-run all tracked issues.")
@@ -30,16 +31,30 @@ export async function track(
 
     for (const i of issueList) {
       // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
-      await trackOne(aya, token, owner, repo, i.number, false)
+      const success = await trackOne(aya, token, owner, repo, i.number, false)
+      if (!success) {
+        fails.push(i.number)
+      }
     }
   } else {
-    await trackOne(aya, token, owner, repo, issue, true)
+    const success = await trackOne(aya, token, owner, repo, issue, true)
+    if (!success) {
+      fails.push(issue)
+    }
+  }
+
+  if (fails.length > 0) {
+    throw new Error(
+      'The following issue was marked as tracking but fails to track: ' +
+        fails.map((n) => '#' + n).join(' ')
+    )
   }
 }
 
 /**
  * Assumptions: issue has tracking label if `mark == false`, otherwise issue has no tracking label
  * @param mark whether mark the issue as tracking, should be false if issue-tracker is triggered by push on main branch
+ * @return if track success, track fail if issue tracker is not enabled for the given issue.
  */
 async function trackOne(
   aya: Aya,
@@ -48,7 +63,7 @@ async function trackOne(
   repo: string,
   issue: number,
   mark: boolean
-): Promise<void> {
+): Promise<boolean> {
   core.info((mark ? 'Track' : 'Re-run') + ' issue #' + issue)
 
   const octokit = github.getOctokit(token)
@@ -92,14 +107,17 @@ async function trackOne(
       core.info('Make and publish report')
       const report = makeReport(setupResult, output)
       await publishReport(token, owner, repo, issue, report)
+      return true
     } else {
       core.info(
         'No test library is setup, issue-tracker may be disabled or something is wrong'
       )
+      // Don't untrack the issue even project setup fails, but we fails the job
+      return false
     }
-
-    // Don't untrack the issue even project setup fails
   }
+
+  return false
 }
 
 /**
@@ -119,6 +137,7 @@ async function setupTrackEnv(wd: string): Promise<string> {
  * @param content the content of the issue
  * @returns null if unable to setup aya project, this can be either the issue doesn't enable issue-tracker, or something is wrong;
  *          aya version is returned if everything is fine.
+ *          Note that the 'version
  */
 async function parseAndSetupTest(
   aya: Aya,
@@ -150,7 +169,7 @@ async function parseAndSetupTest(
   const files = rawFiles.split(' ')
 
   return {
-    version: version,
+    version: version == 'null' ? null : version,
     files: files
   }
 }
