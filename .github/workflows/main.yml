@@ -25,7 +25,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: checkout
         uses: 'actions/checkout@v4'
-      - run: ls /opt/hostedtoolcache/aya
       - name: run tracker
         uses: ./
         with:
