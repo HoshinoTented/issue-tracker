@@ -85,8 +85,7 @@ async function trackOne(
       const output = await aya.execOutput(
         '--remake',
         '--ascii-only',
-        '--pretty-format',
-        'plain',
+        '--no-color',
         trackerWd
       )
 
