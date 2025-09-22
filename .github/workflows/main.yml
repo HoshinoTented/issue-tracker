@@ -17,12 +17,6 @@ jobs:
     name: Run Tracker
     runs-on: [ubuntu-latest]
     steps:
-      - name: checkout setup-aya
-        uses: 'actions/checkout@v4'
-        with:
-          repository: HoshinoTented/actions
-          refs: main
-          token: ${{ secrets.PAT }}
       - name: setup aya
         id: setup-aya
         uses: 'HoshinoTented/actions@main'
