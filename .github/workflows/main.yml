@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: setup aya
         id: setup-aya
-        uses: 'HoshinoTented/actions@main'
+        uses: 'HoshinoTented/setup-aya@main'
         with:
           refs: 'issue-checker'
           token: ${{ secrets.GITHUB_TOKEN }}

@@ -33835,7 +33835,7 @@ class Aya {
     execOutput(...args) {
         return execExports.getExecOutput('java', ['-jar', this.cliJar, ...args], {
             ignoreReturnCode: true,
-            errStream: process.stdout
+            failOnStdErr: true
         });
     }
 }
