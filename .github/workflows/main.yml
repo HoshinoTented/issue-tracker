@@ -23,7 +23,7 @@ jobs:
         with:
           refs: 'issue-checker'
       - name: checkout
-        uses: 'actions/checkout@v4'
+        uses: 'actions/checkout@v5'
       - name: run tracker
         uses: ./
         with:
