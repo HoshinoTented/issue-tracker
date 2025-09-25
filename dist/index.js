@@ -33834,7 +33834,8 @@ class Aya {
     }
     execOutput(...args) {
         return execExports.getExecOutput('java', ['-jar', this.cliJar, ...args], {
-            ignoreReturnCode: true
+            ignoreReturnCode: true,
+            errStream: process.stdout
         });
     }
 }
@@ -33915,6 +33916,7 @@ async function track(token, owner, repo, issue) {
         });
         for (const i of issueList) {
             // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
+            // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
             const success = await trackOne(aya, token, owner, repo, i.number, false);
             if (!success) {
                 fails.push(i.number);
@@ -33972,7 +33974,7 @@ async function trackOne(aya, token, owner, repo, issue, mark) {
             return true;
         }
         else {
-            coreExports.info('No test library is setup, issue-tracker may be disabled or something is wrong');
+            coreExports.info('No test library was setup, issue-tracker may be disabled or something is wrong');
             // Don't untrack the issue even project setup fails, but we fails the job
             return false;
         }
@@ -33995,7 +33997,6 @@ async function setupTrackEnv(wd) {
  * @param content the content of the issue
  * @returns null if unable to setup aya project, this can be either the issue doesn't enable issue-tracker, or something is wrong;
  *          aya version is returned if everything is fine.
- *          Note that the 'version
  */
 async function parseAndSetupTest(aya, wd, trackDir, content) {
     const issueFile = path.join(wd, ISSUE_FILE);

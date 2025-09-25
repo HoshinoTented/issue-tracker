@@ -31,6 +31,7 @@ export async function track(
 
     for (const i of issueList) {
       // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
+      // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
       const success = await trackOne(aya, token, owner, repo, i.number, false)
       if (!success) {
         fails.push(i.number)
@@ -110,7 +111,7 @@ async function trackOne(
       return true
     } else {
       core.info(
-        'No test library is setup, issue-tracker may be disabled or something is wrong'
+        'No test library was setup, issue-tracker may be disabled or something is wrong'
       )
       // Don't untrack the issue even project setup fails, but we fails the job
       return false
@@ -137,7 +138,6 @@ async function setupTrackEnv(wd: string): Promise<string> {
  * @param content the content of the issue
  * @returns null if unable to setup aya project, this can be either the issue doesn't enable issue-tracker, or something is wrong;
  *          aya version is returned if everything is fine.
- *          Note that the 'version
  */
 async function parseAndSetupTest(
   aya: Aya,
