@@ -22,7 +22,6 @@ jobs:
         uses: 'HoshinoTented/setup-aya@main'
         with:
           refs: 'issue-checker'
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: checkout
         uses: 'actions/checkout@v4'
       - name: run tracker

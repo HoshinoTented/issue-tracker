@@ -65,60 +65,60 @@ async function trackOne(
   issue: number,
   mark: boolean
 ): Promise<boolean> {
-  core.info((mark ? 'Track' : 'Re-run') + ' issue #' + issue)
+  return core.group('#' + issue, async () => {
+    const octokit = github.getOctokit(token)
 
-  const octokit = github.getOctokit(token)
+    const { data: issueData } = await octokit.rest.issues.get({
+      owner: owner,
+      repo: repo,
+      issue_number: issue
+    })
 
-  const { data: issueData } = await octokit.rest.issues.get({
-    owner: owner,
-    repo: repo,
-    issue_number: issue
-  })
+    const body = issueData.body
 
-  const body = issueData.body
+    if (body != null && body != undefined) {
+      const wd = process.cwd()
+      core.info('Setup tracker working directory')
+      const trackerWd = await setupTrackEnv(wd)
+      core.info('Parse and setup test library')
+      const setupResult = await parseAndSetupTest(aya, wd, trackerWd, body)
 
-  if (body != null && body != undefined) {
-    const wd = process.cwd()
-    core.info('Setup tracker working directory')
-    const trackerWd = await setupTrackEnv(wd)
-    core.info('Parse and setup test library')
-    const setupResult = await parseAndSetupTest(aya, wd, trackerWd, body)
+      if (setupResult != null) {
+        core.info('Setup test library successful')
+        if (mark) {
+          core.info(`Mark issue #${issue} as tracking`)
+          await octokit.rest.issues.addLabels({
+            owner: owner,
+            repo: repo,
+            issue_number: issue,
+            labels: [TRACKING_LABEL]
+          })
+        }
 
-    if (setupResult != null) {
-      core.info('Setup test library successful')
-      if (mark) {
-        core.info(`Mark issue #${issue} as tracking`)
-        await octokit.rest.issues.addLabels({
-          owner: owner,
-          repo: repo,
-          issue_number: issue,
-          labels: [TRACKING_LABEL]
-        })
+        // TODO: we need to setup aya of target version, but we have nightly only
+        core.info('Run test library')
+        const output = await aya.execOutput(
+          '--remake',
+          '--ascii-only',
+          '--no-color',
+          trackerWd
+        )
+
+        core.info('Make and publish report')
+        const report = makeReport(setupResult, output)
+        await publishReport(token, owner, repo, issue, report)
+        return true
+      } else {
+        core.info(
+          'No test library was setup, issue-tracker may be disabled or something is wrong'
+        )
+        // Don't untrack the issue even project setup fails, but we fails the job
+        return false
       }
-
-      // TODO: we need to setup aya of target version, but we have nightly only
-      core.info('Run test library')
-      const output = await aya.execOutput(
-        '--remake',
-        '--ascii-only',
-        '--no-color',
-        trackerWd
-      )
-
-      core.info('Make and publish report')
-      const report = makeReport(setupResult, output)
-      await publishReport(token, owner, repo, issue, report)
-      return true
-    } else {
-      core.info(
-        'No test library was setup, issue-tracker may be disabled or something is wrong'
-      )
-      // Don't untrack the issue even project setup fails, but we fails the job
-      return false
     }
-  }
 
-  return false
+    return false
+  })
 }
 
 /**

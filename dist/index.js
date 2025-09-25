@@ -33835,7 +33835,6 @@ class Aya {
     execOutput(...args) {
         return execExports.getExecOutput('java', ['-jar', this.cliJar, ...args], {
             ignoreReturnCode: true,
-            failOnStdErr: true,
             outStream: process.stdout,
             errStream: process.stdout
         });
@@ -33942,46 +33941,47 @@ async function track(token, owner, repo, issue) {
  * @return if track success, track fail if issue tracker is not enabled for the given issue.
  */
 async function trackOne(aya, token, owner, repo, issue, mark) {
-    coreExports.info((mark ? 'Track' : 'Re-run') + ' issue #' + issue);
-    const octokit = githubExports.getOctokit(token);
-    const { data: issueData } = await octokit.rest.issues.get({
-        owner: owner,
-        repo: repo,
-        issue_number: issue
-    });
-    const body = issueData.body;
-    if (body != null && body != undefined) {
-        const wd = process.cwd();
-        coreExports.info('Setup tracker working directory');
-        const trackerWd = await setupTrackEnv(wd);
-        coreExports.info('Parse and setup test library');
-        const setupResult = await parseAndSetupTest(aya, wd, trackerWd, body);
-        if (setupResult != null) {
-            coreExports.info('Setup test library successful');
-            if (mark) {
-                coreExports.info(`Mark issue #${issue} as tracking`);
-                await octokit.rest.issues.addLabels({
-                    owner: owner,
-                    repo: repo,
-                    issue_number: issue,
-                    labels: [TRACKING_LABEL]
-                });
+    return coreExports.group('#' + issue, async () => {
+        const octokit = githubExports.getOctokit(token);
+        const { data: issueData } = await octokit.rest.issues.get({
+            owner: owner,
+            repo: repo,
+            issue_number: issue
+        });
+        const body = issueData.body;
+        if (body != null && body != undefined) {
+            const wd = process.cwd();
+            coreExports.info('Setup tracker working directory');
+            const trackerWd = await setupTrackEnv(wd);
+            coreExports.info('Parse and setup test library');
+            const setupResult = await parseAndSetupTest(aya, wd, trackerWd, body);
+            if (setupResult != null) {
+                coreExports.info('Setup test library successful');
+                if (mark) {
+                    coreExports.info(`Mark issue #${issue} as tracking`);
+                    await octokit.rest.issues.addLabels({
+                        owner: owner,
+                        repo: repo,
+                        issue_number: issue,
+                        labels: [TRACKING_LABEL]
+                    });
+                }
+                // TODO: we need to setup aya of target version, but we have nightly only
+                coreExports.info('Run test library');
+                const output = await aya.execOutput('--remake', '--ascii-only', '--no-color', trackerWd);
+                coreExports.info('Make and publish report');
+                const report = makeReport(setupResult, output);
+                await publishReport(token, owner, repo, issue, report);
+                return true;
             }
-            // TODO: we need to setup aya of target version, but we have nightly only
-            coreExports.info('Run test library');
-            const output = await aya.execOutput('--remake', '--ascii-only', '--no-color', trackerWd);
-            coreExports.info('Make and publish report');
-            const report = makeReport(setupResult, output);
-            await publishReport(token, owner, repo, issue, report);
-            return true;
+            else {
+                coreExports.info('No test library was setup, issue-tracker may be disabled or something is wrong');
+                // Don't untrack the issue even project setup fails, but we fails the job
+                return false;
+            }
         }
-        else {
-            coreExports.info('No test library was setup, issue-tracker may be disabled or something is wrong');
-            // Don't untrack the issue even project setup fails, but we fails the job
-            return false;
-        }
-    }
-    return false;
+        return false;
+    });
 }
 /**
  * Setup track environment, basically mkdir

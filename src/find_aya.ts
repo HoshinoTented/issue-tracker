@@ -18,7 +18,6 @@ export class Aya {
   execOutput(...args: string[]): Promise<exec.ExecOutput> {
     return exec.getExecOutput('java', ['-jar', this.cliJar, ...args], {
       ignoreReturnCode: true,
-      failOnStdErr: true,
       outStream: process.stdout,
       errStream: process.stdout
     })
