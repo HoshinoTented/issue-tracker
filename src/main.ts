@@ -13,7 +13,7 @@ export async function run(): Promise<void> {
     const token = core.getInput('token')
 
     var issue_number: number | undefined
-    if (issue == '') issue_number = undefined
+    if (issue == '' || issue == 'ALL') issue_number = undefined
     else issue_number = parseInt(issue)
 
     track(

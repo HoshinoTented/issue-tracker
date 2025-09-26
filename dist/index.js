@@ -34034,7 +34034,7 @@ async function run() {
         const issue = coreExports.getInput('issue');
         const token = coreExports.getInput('token');
         var issue_number;
-        if (issue == '')
+        if (issue == '' || issue == 'ALL')
             issue_number = undefined;
         else
             issue_number = parseInt(issue);
