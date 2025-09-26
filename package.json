@@ -1,17 +1,17 @@
 {
-  "name": "typescript-action",
-  "description": "GitHub Actions TypeScript template",
+  "name": "issue-tracker",
+  "description": "Automatically Track/Re-Run Aya Issues",
   "version": "0.0.0",
-  "author": "",
+  "author": "aya-prover, HoshinoTented",
   "type": "module",
   "private": true,
-  "homepage": "https://github.com/actions/typescript-action",
+  "homepage": "https://github.com/HoshinoTented/issue-tracker",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
+    "url": "git+https://github.com/HoshinoTented/issue-tracker.git"
   },
   "bugs": {
-    "url": "https://github.com/actions/typescript-action/issues"
+    "url": "https://github.com/HoshinoTented/issue-tracker"
   },
   "keywords": [
     "actions"
