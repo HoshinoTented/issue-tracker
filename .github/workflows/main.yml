@@ -1,0 +1,31 @@
+name: Test Action
+
+on:
+  push:
+    branches: [main]
+  issues:
+    types: [opened, edited]
+
+jobs:
+  run-tracker:
+    defaults:
+      run:
+        shell: bash
+    permissions:
+      contents: read
+      issues: write
+    name: Run Tracker
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: setup aya
+        id: setup-aya
+        uses: 'HoshinoTented/setup-aya@main'
+        with:
+          refs: 'issue-checker'
+      - name: checkout
+        uses: 'actions/checkout@v4'
+      - name: run tracker
+        uses: ./
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue: ${{ github.event.issue.number }}

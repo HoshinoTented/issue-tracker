@@ -1,0 +1,26 @@
+name: Aya Issue Tracker
+description: Track status of all aya issues
+author: aya-prover
+
+# Add your action's branding here. This will appear on the GitHub Marketplace.
+branding:
+  icon: heart
+  color: red
+
+# Define your inputs here.
+inputs:
+  token:
+    description: Github token
+    required: true
+  issue:
+    description: the url of target issue, 'ALL' if track all issue
+    default: 'ALL'
+
+# Define your outputs here.
+outputs:
+  time:
+    description: Your output description here
+
+runs:
+  using: node24
+  main: dist/index.js

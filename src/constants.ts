@@ -1,0 +1,9 @@
+export const ayaSrcDir = 'src'
+export const ayaToolName = 'aya'
+export const semverNightly = '0.0.0'
+export const cliFileName = 'cli-fatjar.jar'
+export const versionNightly = 'nightly-build'
+export const TRACK_DIR = 'issue-tracker-dir'
+export const ISSUE_FILE = 'issue.md'
+export const TRACKING_LABEL = 'tracking'
+export const GITHUB_ACTION_BOT_ID = 41898282
