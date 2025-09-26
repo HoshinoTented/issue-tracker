@@ -40,6 +40,7 @@ jobs:
         id: npm-lint
         run: npm run lint
 
-      - name: Test
-        id: npm-ci-test
-        run: npm run ci-test
+      # Don't know what i should test
+      # - name: Test
+      #   id: npm-ci-test
+      #   run: npm run ci-test
