@@ -1,7 +1,7 @@
 {
   "name": "issue-tracker",
   "description": "Automatically Track/Re-Run Aya Issues",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "author": "aya-prover, HoshinoTented",
   "type": "module",
   "private": true,

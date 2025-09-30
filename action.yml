@@ -1,5 +1,5 @@
 name: Aya Issue Tracker
-description: Track status of all aya issues
+description: Automatically Track/Re-Run Aya Issues
 author: aya-prover
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
@@ -15,11 +15,6 @@ inputs:
   issue:
     description: the url of target issue, 'ALL' if track all issue
     default: 'ALL'
-
-# Define your outputs here.
-outputs:
-  time:
-    description: Your output description here
 
 runs:
   using: node24

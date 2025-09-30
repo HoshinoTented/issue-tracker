@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: setup aya
         id: setup-aya
-        uses: 'HoshinoTented/setup-aya@main'
+        uses: 'HoshinoTented/setup-aya@v1'
         with:
           refs: 'issue-checker'
       - name: checkout
