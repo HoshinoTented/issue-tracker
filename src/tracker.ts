@@ -165,7 +165,7 @@ async function parseAndSetupTest(
     throw new Error('Broken output while setting up issue project:\n' + stdout)
   }
 
-  const [version, rawFiles, ..._] = lines
+  const [version, rawFiles] = lines
   const files = rawFiles.split(' ')
 
   return {

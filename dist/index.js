@@ -33869,7 +33869,7 @@ function findAya() {
  */
 function makeReport(setupResult, output) {
     // TODO: extends to multi-version case, but this is good for now.
-    const fileList = setupResult.files.map((v, i, a) => '`' + v + '`').join(' ');
+    const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ');
     return `
   The following aya files are detected: ${fileList}
   Aya Version: \`${setupResult.version}\`
@@ -34016,7 +34016,7 @@ async function parseAndSetupTest(aya, wd, trackDir, content) {
     if (lines.length < 2) {
         throw new Error('Broken output while setting up issue project:\n' + stdout);
     }
-    const [version, rawFiles, ..._] = lines;
+    const [version, rawFiles] = lines;
     const files = rawFiles.split(' ');
     return {
         version: version == 'null' ? null : version,
@@ -34033,7 +34033,7 @@ async function run() {
     try {
         const issue = coreExports.getInput('issue');
         const token = coreExports.getInput('token');
-        var issue_number;
+        let issue_number;
         if (issue == '' || issue == 'ALL')
             issue_number = undefined;
         else

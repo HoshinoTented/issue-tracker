@@ -15,7 +15,7 @@ export function makeReport(
   output: exec.ExecOutput & { stdall: string }
 ): string {
   // TODO: extends to multi-version case, but this is good for now.
-  const fileList = setupResult.files.map((v, i, a) => '`' + v + '`').join(' ')
+  const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ')
   return `
   The following aya files are detected: ${fileList}
   Aya Version: \`${setupResult.version}\`

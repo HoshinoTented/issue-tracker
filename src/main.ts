@@ -12,7 +12,7 @@ export async function run(): Promise<void> {
     const issue = core.getInput('issue')
     const token = core.getInput('token')
 
-    var issue_number: number | undefined
+    let issue_number: number | undefined
     if (issue == '' || issue == 'ALL') issue_number = undefined
     else issue_number = parseInt(issue)
 
