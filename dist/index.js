@@ -34017,7 +34017,7 @@ async function parseAndSetupTest(aya, wd, trackDir, content) {
         throw new Error('Broken output while setting up issue project:\n' + stdout);
     }
     const [version, rawFiles] = lines;
-    const files = rawFiles.split(' ');
+    const files = rawFiles ? [] : rawFiles.split(' ');
     return {
         version: version == 'null' ? null : version,
         files: files

@@ -8,7 +8,9 @@ on:
 
 jobs:
   run-tracker:
-    if: ${{ github.event.issue == null && true || startsWith(github.event.issue.body, '<!-- ISSUE TRACKER ENABLE -->') }}
+    if:
+      ${{ github.event.issue == null && true ||
+      startsWith(github.event.issue.body, '<!-- ISSUE TRACKER ENABLE -->') }}
     defaults:
       run:
         shell: bash
