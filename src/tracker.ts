@@ -166,7 +166,7 @@ async function parseAndSetupTest(
   }
 
   const [version, rawFiles] = lines
-  const files = rawFiles.split(' ')
+  const files = rawFiles ? [] : rawFiles.split(' ')
 
   return {
     version: version == 'null' ? null : version,

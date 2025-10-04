@@ -19,7 +19,7 @@ jobs:
       continue: ${{ steps.check.outputs.continue }}
   run-tracker:
     needs: check-marker
-    if: ${{ needs.check-marker.outputs.continue }}
+    if: ${{ needs.check-marker.outputs.continue == 'true' }}
     defaults:
       run:
         shell: bash

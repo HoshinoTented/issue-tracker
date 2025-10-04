@@ -33,7 +33,7 @@ jobs:
   run-tracker:
     needs: check-marker
     # don't run on invalid issues
-    if: ${{ needs.check-marker.outputs.continue }}
+    if: ${{ needs.check-marker.outputs.continue == 'true' }}
     permissions:
       # other permission here...
       contents: read
