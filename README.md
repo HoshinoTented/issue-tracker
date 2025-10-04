@@ -45,3 +45,9 @@ jobs:
         # the issue number, can be empty, but issue-tracker can handle it
         issue: ${{ github.event.issue.number }}
 ```
+
+## Q & A
+
+Q: How do I re-run the issue after editing?
+A: Just re-run the corresponding workflow, we may support re-run issue by emotion after github support it.
+

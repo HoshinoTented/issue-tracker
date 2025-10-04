@@ -7,7 +7,16 @@ on:
     types: [opened, edited]
 
 jobs:
+  check-marker:
+    name: Check Marker
+    runs-on: ubuntu-latest
+    steps:
+      - name: check
+        run: |
+          echo "continue=${{ github.event.issue == null && true || startsWith(github.event.issue.body, '<!-- ISSUE TRACKER ENABLE -->') }}" >> $GITHUB_OUTPUT
   run-tracker:
+    needs: check-marker
+    if: ${{ needs.check-marker.outputs.continue }}
     defaults:
       run:
         shell: bash
