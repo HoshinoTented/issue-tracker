@@ -20,20 +20,9 @@ on:
     types: [opened]
 
 jobs:
-  check-marker:
-    name: Check Marker
-    runs-on: ubuntu-latest
-    steps:
-      - name: check
-        id: check
-        run: |
-          echo "continue=${{ github.event.issue == null && true || startsWith(github.event.issue.body, '<!-- ISSUE TRACKER ENABLE -->') }}" >> $GITHUB_OUTPUT
-    outputs:
-      continue: ${{ steps.check.outputs.continue }}
   run-tracker:
-    needs: check-marker
     # don't run on invalid issues
-    if: ${{ needs.check-marker.outputs.continue == 'true' }}
+    if: ${{ github.event.issue == null && true || startsWith(github.event.issue.body, '<!-- ISSUE TRACKER ENABLE -->') }}
     permissions:
       # other permission here...
       contents: read
@@ -61,6 +50,5 @@ jobs:
 
 ## Q & A
 
-Q: How do I re-run the issue after editing?
-A: Just re-run the corresponding workflow, we may support re-run issue by emotion after github support it.
-
+Q: How do I re-run the issue after editing? A: Just re-run the corresponding
+workflow, we may support re-run issue by emotion after github support it.
