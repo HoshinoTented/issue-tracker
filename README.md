@@ -20,7 +20,20 @@ on:
     types: [opened]
 
 jobs:
+  check-marker:
+    name: Check Marker
+    runs-on: ubuntu-latest
+    steps:
+      - name: check
+        id: check
+        run: |
+          echo "continue=${{ github.event.issue == null && true || startsWith(github.event.issue.body, '<!-- ISSUE TRACKER ENABLE -->') }}" >> $GITHUB_OUTPUT
+    outputs:
+      continue: ${{ steps.check.outputs.continue }}
   run-tracker:
+    needs: check-marker
+    # don't run on invalid issues
+    if: ${{ needs.check-marker.outputs.continue }}
     permissions:
       # other permission here...
       contents: read

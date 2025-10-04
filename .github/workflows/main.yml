@@ -12,8 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: check
+        id: check
         run: |
           echo "continue=${{ github.event.issue == null && true || startsWith(github.event.issue.body, '<!-- ISSUE TRACKER ENABLE -->') }}" >> $GITHUB_OUTPUT
+    outputs:
+      continue: ${{ steps.check.outputs.continue }}
   run-tracker:
     needs: check-marker
     if: ${{ needs.check-marker.outputs.continue }}
