@@ -33870,21 +33870,18 @@ function findAya() {
 function makeReport(setupResult, output) {
     // TODO: extends to multi-version case, but this is good for now.
     const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ');
-    return `
-The following aya files are detected: ${fileList}
+    return `The following aya files are detected: ${fileList}
 Aya Version: \`${setupResult.version}\`
 
 Exit code: ${output.exitCode}
 Output:
 \`\`\`plaintext
 ${output.stdall}
-\`\`\`
-`;
+\`\`\``;
 }
 function makePrReport(reports) {
     return reports
-        .map((v) => `
-## #${v.issue}
+        .map((v) => `## #${v.issue}
 
 ${v.report}`)
         .join('\n');
@@ -34099,7 +34096,6 @@ async function parseAndSetupTest(aya, wd, trackDir, content) {
         throw new Error('Broken output while setting up issue project:\n' + stdout);
     }
     const [version, rawFiles] = lines;
-    coreExports.info('test: ' + rawFiles);
     const files = !rawFiles ? [] : rawFiles.split(' ');
     return {
         version: version == 'null' ? null : version,
