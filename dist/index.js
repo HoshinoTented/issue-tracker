@@ -33981,6 +33981,9 @@ async function track(token, owner, repo, issue, pr) {
                     invalids.push(i);
                 }
                 else {
+                    if (result.execResult.exitCode != 0) {
+                        fails.push(i);
+                    }
                     reports.push({
                         issue: i,
                         report: makeReport(result.setupResult, result.execResult)
