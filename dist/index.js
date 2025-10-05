@@ -33886,8 +33886,7 @@ function makePrReport(reports) {
         .map((v) => `
 ## #${v.issue}
 
-${v.report}
-`)
+${v.report}`)
         .join('\n');
 }
 /**
@@ -34101,7 +34100,7 @@ async function parseAndSetupTest(aya, wd, trackDir, content) {
     }
     const [version, rawFiles] = lines;
     coreExports.info('test: ' + rawFiles);
-    const files = rawFiles ? [] : rawFiles.split(' ');
+    const files = !rawFiles ? [] : rawFiles.split(' ');
     return {
         version: version == 'null' ? null : version,
         files: files

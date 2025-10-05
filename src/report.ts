@@ -34,8 +34,7 @@ export function makePrReport(reports: PrReport[]): string {
       (v) => `
 ## #${v.issue}
 
-${v.report}
-`
+${v.report}`
     )
     .join('\n')
 }

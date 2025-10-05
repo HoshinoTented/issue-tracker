@@ -234,7 +234,7 @@ async function parseAndSetupTest(
 
   const [version, rawFiles] = lines
   core.info('test: ' + rawFiles)
-  const files = rawFiles ? [] : rawFiles.split(' ')
+  const files = !rawFiles ? [] : rawFiles.split(' ')
 
   return {
     version: version == 'null' ? null : version,
