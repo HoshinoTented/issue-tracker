@@ -28,6 +28,7 @@ export async function track(
   pr?: number
 ) {
   const aya = findAya()
+  const invalids: number[] = []
   const fails: number[] = []
 
   if (issue == undefined) {
@@ -57,6 +58,8 @@ export async function track(
       // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
       const result = await trackOne(aya, token, owner, repo, i, false, pr)
       if (result == TrackResult.FailOnSetup) {
+        invalids.push(i)
+      } else if (pr != null && result == TrackResult.FailOnRun) {
         fails.push(i)
       }
     }
@@ -64,15 +67,19 @@ export async function track(
     // triggered by issue creation
     const result = await trackOne(aya, token, owner, repo, issue, true)
     if (result == TrackResult.FailOnSetup) {
-      fails.push(issue)
+      invalids.push(issue)
     }
   }
 
-  if (fails.length > 0) {
-    throw new Error(
-      'The following issue was marked as tracking but fails to track: ' +
-        fails.map((n) => '#' + n).join(' ')
+  if (invalids.length > 0) {
+    core.setFailed(
+      'The following issues were marked as tracking but fail to track: ' +
+        invalids.map((n) => '#' + n).join(' ')
     )
+  }
+
+  if (fails.length > 0) {
+    core.setFailed("The following issues fail: " + fails.map((n) => '#' + n).join(' '))
   }
 }
 
