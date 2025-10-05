@@ -17,25 +17,25 @@ export function makeReport(
   // TODO: extends to multi-version case, but this is good for now.
   const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ')
   return `
-    The following aya files are detected: ${fileList}
-    Aya Version: \`${setupResult.version}\`
+The following aya files are detected: ${fileList}
+Aya Version: \`${setupResult.version}\`
 
-    Exit code: ${output.exitCode}
-    Output:
-    \`\`\`plaintext
-    ${output.stdall}
-    \`\`\`
-    `
+Exit code: ${output.exitCode}
+Output:
+\`\`\`plaintext
+${output.stdall}
+\`\`\`
+`
 }
 
 export function makePrReport(reports: PrReport[]): string {
   return reports
     .map(
       (v) => `
-    ## #${v.issue}
+## #${v.issue}
 
-    ${v.report}
-    `
+${v.report}
+`
     )
     .join('\n')
 }
