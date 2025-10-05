@@ -3,6 +3,7 @@ import * as exec from '@actions/exec'
 import { ayaToolName, cliFileName, semverNightly } from './constants.js'
 import path from 'path'
 import fs from 'fs'
+import { RichExecOutput } from './types.js'
 
 export class Aya {
   cliJar: string
@@ -15,9 +16,7 @@ export class Aya {
     return exec.exec('java', ['-jar', this.cliJar, ...args])
   }
 
-  async execOutput(
-    ...args: string[]
-  ): Promise<exec.ExecOutput & { stdall: string }> {
+  async execOutput(...args: string[]): Promise<RichExecOutput> {
     let stdall: string = ''
 
     const execOutput = await exec.getExecOutput(

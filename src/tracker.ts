@@ -5,16 +5,10 @@ import path from 'path'
 import { promises as fs } from 'fs'
 
 import { Aya, findAya } from './find_aya.js'
-import { SetupResult } from './types.js'
+import { PrReport, SetupResult, TrackResult } from './types.js'
 import { TRACKING_LABEL, TRACK_DIR, ISSUE_FILE } from './constants.js'
-import { makeReport, publishReport } from './report.js'
+import { makePrReport, makeReport, publishReport } from './report.js'
 import { collectLinkedIssues } from './graphql_util.js'
-
-enum TrackResult {
-  Success,
-  FailOnSetup,
-  FailOnRun
-}
 
 /**
  * @param issue the issue to track, null if track all
@@ -32,41 +26,60 @@ export async function track(
   const fails: number[] = []
 
   if (issue == undefined) {
-    let issueList: number[]
-
     if (pr == undefined) {
       // trigerred by master branch update
       core.info("'issue' is not specified, re-run all tracked issues.")
 
       const octokit = github.getOctokit(token)
-      const { data: mIssueList } = await octokit.rest.issues.listForRepo({
+      const { data: issueList } = await octokit.rest.issues.listForRepo({
         owner: owner,
         repo: repo,
         state: 'open',
         labels: TRACKING_LABEL
       })
 
-      issueList = mIssueList.map((it) => it.number)
+      for (const i of issueList) {
+        // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
+        // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
+        const success = await trackOneAndReport(
+          aya,
+          token,
+          owner,
+          repo,
+          i.number,
+          false
+        )
+        if (!success) {
+          invalids.push(i.number)
+        }
+      }
     } else {
       // triggered by pr branch update
       core.info('Track all linked issues of pull request #' + pr)
-      issueList = await collectLinkedIssues(token, owner, repo, pr)
-    }
+      const issueList = await collectLinkedIssues(token, owner, repo, pr)
+      const reports: PrReport[] = []
 
-    for (const i of issueList) {
-      // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
-      // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
-      const result = await trackOne(aya, token, owner, repo, i, false, pr)
-      if (result == TrackResult.FailOnSetup) {
-        invalids.push(i)
-      } else if (pr != null && result == TrackResult.FailOnRun) {
-        fails.push(i)
+      for (const i of issueList) {
+        const result = await trackOne(aya, token, owner, repo, i, false)
+        if (result == null) {
+          invalids.push(i)
+        } else {
+          reports.push({
+            issue: i,
+            report: makeReport(result.setupResult, result.execResult)
+          })
+        }
       }
+
+      // still publish report even there are invalid issues
+
+      const report = makePrReport(reports)
+      await publishReport(token, owner, repo, pr, report)
     }
   } else {
     // triggered by issue creation
-    const result = await trackOne(aya, token, owner, repo, issue, true)
-    if (result == TrackResult.FailOnSetup) {
+    const result = await trackOneAndReport(aya, token, owner, repo, issue, true)
+    if (result == null) {
       invalids.push(issue)
     }
   }
@@ -79,8 +92,29 @@ export async function track(
   }
 
   if (fails.length > 0) {
-    core.setFailed("The following issues fail: " + fails.map((n) => '#' + n).join(' '))
+    core.setFailed(
+      'The following issues fail: ' + fails.map((n) => '#' + n).join(' ')
+    )
   }
+}
+
+async function trackOneAndReport(
+  aya: Aya,
+  token: string,
+  owner: string,
+  repo: string,
+  issue: number,
+  mark: boolean
+): Promise<boolean> {
+  const result = await trackOne(aya, token, owner, repo, issue, mark)
+  if (result == null) return false
+
+  core.info('Make and publish report')
+  const report = makeReport(result.setupResult, result.execResult)
+
+  await publishReport(token, owner, repo, issue, report)
+
+  return true
 }
 
 /**
@@ -95,8 +129,7 @@ async function trackOne(
   owner: string,
   repo: string,
   issue: number,
-  mark: boolean,
-  pr?: number
+  mark: boolean
 ): Promise<TrackResult> {
   return core.group('#' + issue, async () => {
     const octokit = github.getOctokit(token)
@@ -137,27 +170,20 @@ async function trackOne(
           trackerWd
         )
 
-        core.info('Make and publish report')
-        const report = makeReport(
+        return {
           setupResult,
-          output,
-          pr == undefined ? undefined : issue
-        )
-        await publishReport(token, owner, repo, issue, report, pr)
-
-        return output.exitCode == 0
-          ? TrackResult.Success
-          : TrackResult.FailOnRun
+          execResult: output
+        }
       } else {
         core.info(
           'No test library was setup, issue-tracker may be disabled or something is wrong'
         )
         // Don't untrack the issue even project setup fails, but we fails the job
-        return TrackResult.FailOnSetup
+        return null
       }
     }
 
-    return TrackResult.FailOnSetup
+    return null
   })
 }
 
