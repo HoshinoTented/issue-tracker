@@ -33867,10 +33867,12 @@ function findAya() {
  * @param output the output of run
  * @returns report
  */
-function makeReport(setupResult, output) {
+function makeReport(setupResult, output, linked) {
     // TODO: extends to multi-version case, but this is good for now.
     const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ');
-    return `
+    const prefix = '';
+    return (prefix +
+        `
   The following aya files are detected: ${fileList}
   Aya Version: \`${setupResult.version}\`
 
@@ -33879,17 +33881,38 @@ function makeReport(setupResult, output) {
   \`\`\`plaintext
   ${output.stdall}
   \`\`\`
-  `;
+  `);
 }
-async function publishReport(token, owner, repo, issue, report) {
+/**
+ * @param pr if not-null, then publish report to pull request instead of issue
+ */
+async function publishReport(token, owner, repo, issue, report, pr) {
     const octokit = github.getOctokit(token);
+    const target = issue;
+    // issue and pulls share some api
     const { data: comments } = await octokit.rest.issues.listComments({
         owner: owner,
         repo: repo,
-        issue_number: issue
+        issue_number: target
     });
-    const myComment = comments.find((c) => c.user?.id == GITHUB_ACTION_BOT_ID);
-    if (myComment == undefined) {
+    const foundComment = comments.filter((c) => c.user?.id == GITHUB_ACTION_BOT_ID);
+    let foundCommentId;
+    if (foundComment.length == 0) {
+        foundCommentId = null;
+    }
+    else {
+        {
+            // target == issue
+            // check if [foundComment] has length 1
+            if (foundComment.length > 1) {
+                throw new Error(`Expecting 1 comment of issue #${issue}, but got ${foundComment.length}`);
+            }
+            else {
+                foundCommentId = foundComment[0].id;
+            }
+        }
+    }
+    if (foundCommentId == null) {
         await octokit.rest.issues.createComment({
             owner: owner,
             repo: repo,
@@ -33901,36 +33924,52 @@ async function publishReport(token, owner, repo, issue, report) {
         await octokit.rest.issues.updateComment({
             owner: owner,
             repo: repo,
-            comment_id: myComment.id,
+            comment_id: foundCommentId,
             body: report
         });
     }
 }
 
-async function track(token, owner, repo, issue) {
+var TrackResult;
+(function (TrackResult) {
+    TrackResult[TrackResult["Success"] = 0] = "Success";
+    TrackResult[TrackResult["FailOnSetup"] = 1] = "FailOnSetup";
+    TrackResult[TrackResult["FailOnRun"] = 2] = "FailOnRun";
+})(TrackResult || (TrackResult = {}));
+/**
+ * @param issue the issue to track, null if track all
+ * @param pr set if triggered by head ref update of pull request, in this case, track will set error if any linked issue is failed
+ */
+async function track(token, owner, repo, issue, pr) {
     const aya = findAya();
     const fails = [];
     if (issue == undefined) {
-        coreExports.info("'issue' is not specified, re-run all tracked issues.");
-        const octokit = githubExports.getOctokit(token);
-        const { data: issueList } = await octokit.rest.issues.listForRepo({
-            owner: owner,
-            repo: repo,
-            state: 'open',
-            labels: TRACKING_LABEL
-        });
+        let issueList;
+        {
+            // trigerred by master branch update
+            coreExports.info("'issue' is not specified, re-run all tracked issues.");
+            const octokit = githubExports.getOctokit(token);
+            const { data: mIssueList } = await octokit.rest.issues.listForRepo({
+                owner: owner,
+                repo: repo,
+                state: 'open',
+                labels: TRACKING_LABEL
+            });
+            issueList = mIssueList.map((it) => it.number);
+        }
         for (const i of issueList) {
             // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
             // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
-            const success = await trackOne(aya, token, owner, repo, i.number, false);
-            if (!success) {
-                fails.push(i.number);
+            const result = await trackOne(aya, token, owner, repo, i, false);
+            if (result == TrackResult.FailOnSetup) {
+                fails.push(i);
             }
         }
     }
     else {
-        const success = await trackOne(aya, token, owner, repo, issue, true);
-        if (!success) {
+        // triggered by issue creation
+        const result = await trackOne(aya, token, owner, repo, issue, true);
+        if (result == TrackResult.FailOnSetup) {
             fails.push(issue);
         }
     }
@@ -33942,9 +33981,10 @@ async function track(token, owner, repo, issue) {
 /**
  * Assumptions: issue has tracking label if `mark == false`, otherwise issue has no tracking label
  * @param mark whether mark the issue as tracking, should be false if issue-tracker is triggered by push on main branch
+ * @param pr the pr number if track is triggered by head ref update of pull request
  * @return if track success, track fail if issue tracker is not enabled for the given issue.
  */
-async function trackOne(aya, token, owner, repo, issue, mark) {
+async function trackOne(aya, token, owner, repo, issue, mark, pr) {
     return coreExports.group('#' + issue, async () => {
         const octokit = githubExports.getOctokit(token);
         const { data: issueData } = await octokit.rest.issues.get({
@@ -33976,15 +34016,17 @@ async function trackOne(aya, token, owner, repo, issue, mark) {
                 coreExports.info('Make and publish report');
                 const report = makeReport(setupResult, output);
                 await publishReport(token, owner, repo, issue, report);
-                return true;
+                return output.exitCode == 0
+                    ? TrackResult.Success
+                    : TrackResult.FailOnRun;
             }
             else {
                 coreExports.info('No test library was setup, issue-tracker may be disabled or something is wrong');
                 // Don't untrack the issue even project setup fails, but we fails the job
-                return false;
+                return TrackResult.FailOnSetup;
             }
         }
-        return false;
+        return TrackResult.FailOnSetup;
     });
 }
 /**
@@ -34002,7 +34044,7 @@ async function setupTrackEnv(wd) {
  * @param trackDir directory that will be used for setting up aya project
  * @param content the content of the issue
  * @returns null if unable to setup aya project, this can be either the issue doesn't enable issue-tracker, or something is wrong;
- *          aya version is returned if everything is fine.
+ *          [SetupResult] is returned if everything is fine.
  */
 async function parseAndSetupTest(aya, wd, trackDir, content) {
     const issueFile = path.join(wd, ISSUE_FILE);

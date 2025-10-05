@@ -8,38 +8,62 @@ import { Aya, findAya } from './find_aya.js'
 import { SetupResult } from './types.js'
 import { TRACKING_LABEL, TRACK_DIR, ISSUE_FILE } from './constants.js'
 import { makeReport, publishReport } from './report.js'
+import { collectLinkedIssues } from './graphql_util.js'
 
+enum TrackResult {
+  Success,
+  FailOnSetup,
+  FailOnRun
+}
+
+/**
+ * @param issue the issue to track, null if track all
+ * @param pr set if triggered by head ref update of pull request, in this case, track will set error if any linked issue is failed
+ */
 export async function track(
   token: string,
   owner: string,
   repo: string,
-  issue?: number
+  issue?: number,
+  pr?: number
 ) {
   const aya = findAya()
   const fails: number[] = []
 
   if (issue == undefined) {
-    core.info("'issue' is not specified, re-run all tracked issues.")
+    let issueList: number[]
 
-    const octokit = github.getOctokit(token)
-    const { data: issueList } = await octokit.rest.issues.listForRepo({
-      owner: owner,
-      repo: repo,
-      state: 'open',
-      labels: TRACKING_LABEL
-    })
+    if (pr == undefined) {
+      // trigerred by master branch update
+      core.info("'issue' is not specified, re-run all tracked issues.")
+
+      const octokit = github.getOctokit(token)
+      const { data: mIssueList } = await octokit.rest.issues.listForRepo({
+        owner: owner,
+        repo: repo,
+        state: 'open',
+        labels: TRACKING_LABEL
+      })
+
+      issueList = mIssueList.map((it) => it.number)
+    } else {
+      // triggered by pr branch update
+      core.info('Track all linked issues of pull request #' + pr)
+      issueList = await collectLinkedIssues(token, owner, repo, pr)
+    }
 
     for (const i of issueList) {
       // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
       // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
-      const success = await trackOne(aya, token, owner, repo, i.number, false)
-      if (!success) {
-        fails.push(i.number)
+      const result = await trackOne(aya, token, owner, repo, i, false, pr)
+      if (result == TrackResult.FailOnSetup) {
+        fails.push(i)
       }
     }
   } else {
-    const success = await trackOne(aya, token, owner, repo, issue, true)
-    if (!success) {
+    // triggered by issue creation
+    const result = await trackOne(aya, token, owner, repo, issue, true)
+    if (result == TrackResult.FailOnSetup) {
       fails.push(issue)
     }
   }
@@ -55,6 +79,7 @@ export async function track(
 /**
  * Assumptions: issue has tracking label if `mark == false`, otherwise issue has no tracking label
  * @param mark whether mark the issue as tracking, should be false if issue-tracker is triggered by push on main branch
+ * @param pr the pr number if track is triggered by head ref update of pull request
  * @return if track success, track fail if issue tracker is not enabled for the given issue.
  */
 async function trackOne(
@@ -63,8 +88,9 @@ async function trackOne(
   owner: string,
   repo: string,
   issue: number,
-  mark: boolean
-): Promise<boolean> {
+  mark: boolean,
+  pr?: number
+): Promise<TrackResult> {
   return core.group('#' + issue, async () => {
     const octokit = github.getOctokit(token)
 
@@ -105,19 +131,26 @@ async function trackOne(
         )
 
         core.info('Make and publish report')
-        const report = makeReport(setupResult, output)
-        await publishReport(token, owner, repo, issue, report)
-        return true
+        const report = makeReport(
+          setupResult,
+          output,
+          pr == undefined ? undefined : issue
+        )
+        await publishReport(token, owner, repo, issue, report, pr)
+
+        return output.exitCode == 0
+          ? TrackResult.Success
+          : TrackResult.FailOnRun
       } else {
         core.info(
           'No test library was setup, issue-tracker may be disabled or something is wrong'
         )
         // Don't untrack the issue even project setup fails, but we fails the job
-        return false
+        return TrackResult.FailOnSetup
       }
     }
 
-    return false
+    return TrackResult.FailOnSetup
   })
 }
 
@@ -137,7 +170,7 @@ async function setupTrackEnv(wd: string): Promise<string> {
  * @param trackDir directory that will be used for setting up aya project
  * @param content the content of the issue
  * @returns null if unable to setup aya project, this can be either the issue doesn't enable issue-tracker, or something is wrong;
- *          aya version is returned if everything is fine.
+ *          [SetupResult] is returned if everything is fine.
  */
 async function parseAndSetupTest(
   aya: Aya,
