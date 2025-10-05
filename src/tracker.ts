@@ -73,6 +73,7 @@ export async function track(
 
       // still publish report even there are invalid issues
 
+      core.info('Make and publish report')
       const report = makePrReport(reports)
       await publishReport(token, owner, repo, pr, report)
     }

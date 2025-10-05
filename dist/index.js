@@ -33881,6 +33881,15 @@ function makeReport(setupResult, output) {
     \`\`\`
     `;
 }
+function makePrReport(reports) {
+    return reports
+        .map((v) => `
+    ## #${v.issue}
+
+    ${v.report}
+    `)
+        .join('\n');
+}
 /**
  * @param pr if not-null, then publish report to pull request instead of issue
  */
@@ -33911,6 +33920,32 @@ async function publishReport(token, owner, repo, issue, report) {
     }
 }
 
+async function collectLinkedIssues(token, owner, repo, pr) {
+    const octokit = github.getOctokit(token);
+    const resp = await octokit.graphql(`
+    query collectLinkedIssues($owner: String!, $name: String!, $pr: Int!) {
+      repository(owner: $owner, name: $name) {
+        pullRequest(number: $pr) {
+          closingIssuesReferences(first: 5) { # are you sure we have more than 5 linked issues?
+            nodes {
+              closed
+              number
+              labels(first: 10) {
+                nodes {
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    `, { owner, name: repo, pr });
+    return resp.repository.pullRequest.closingIssuesReferences.nodes
+        .filter((it) => !it.closed && it.labels.nodes.some((ls) => ls.name == TRACKING_LABEL))
+        .map((it) => it.number);
+}
+
 /**
  * @param issue the issue to track, null if track all
  * @param pr set if triggered by head ref update of pull request, in this case, track will set error if any linked issue is failed
@@ -33920,7 +33955,7 @@ async function track(token, owner, repo, issue, pr) {
     const invalids = [];
     const fails = [];
     if (issue == undefined) {
-        {
+        if (pr == undefined) {
             // trigerred by master branch update
             coreExports.info("'issue' is not specified, re-run all tracked issues.");
             const octokit = githubExports.getOctokit(token);
@@ -33938,6 +33973,28 @@ async function track(token, owner, repo, issue, pr) {
                     invalids.push(i.number);
                 }
             }
+        }
+        else {
+            // triggered by pr branch update
+            coreExports.info('Track all linked issues of pull request #' + pr);
+            const issueList = await collectLinkedIssues(token, owner, repo, pr);
+            const reports = [];
+            for (const i of issueList) {
+                const result = await trackOne(aya, token, owner, repo, i, false);
+                if (result == null) {
+                    invalids.push(i);
+                }
+                else {
+                    reports.push({
+                        issue: i,
+                        report: makeReport(result.setupResult, result.execResult)
+                    });
+                }
+            }
+            // still publish report even there are invalid issues
+            coreExports.info('Make and publish report');
+            const report = makePrReport(reports);
+            await publishReport(token, owner, repo, pr, report);
         }
     }
     else {
@@ -34057,14 +34114,19 @@ async function parseAndSetupTest(aya, wd, trackDir, content) {
  */
 async function run() {
     try {
-        const issue = coreExports.getInput('issue');
         const token = coreExports.getInput('token');
+        const issue = coreExports.getInput('issue');
+        const pull_request = coreExports.getInput('pull_request');
         let issue_number;
         if (issue == '' || issue == 'ALL')
             issue_number = undefined;
         else
             issue_number = parseInt(issue);
-        track(token, githubExports.context.repo.owner, githubExports.context.repo.repo, issue_number);
+        let is_pr = pull_request == 'true';
+        if (is_pr && issue_number == undefined) {
+            throw new Error("Must supply 'issue' when 'pull_request' is set to 'true'");
+        }
+        track(token, githubExports.context.repo.owner, githubExports.context.repo.repo, is_pr ? undefined : issue_number, is_pr ? issue_number : undefined);
     }
     catch (error) {
         // Fail the workflow run if an error occurs
