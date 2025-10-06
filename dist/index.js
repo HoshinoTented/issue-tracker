@@ -33991,9 +33991,14 @@ async function track(token, owner, repo, issue, pr) {
                 }
             }
             // still publish report even there are invalid issues
-            coreExports.info('Make and publish report');
-            const report = makePrReport(reports);
-            await publishReport(token, owner, repo, pr, report);
+            if (reports.length != 0) {
+                coreExports.info('Make and publish report');
+                const report = makePrReport(reports);
+                await publishReport(token, owner, repo, pr, report);
+            }
+            else {
+                coreExports.info('No reports, can be either no linked issues or all issues are failed to setup');
+            }
         }
     }
     else {

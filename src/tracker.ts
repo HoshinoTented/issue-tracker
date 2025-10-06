@@ -82,7 +82,9 @@ export async function track(
         const report = makePrReport(reports)
         await publishReport(token, owner, repo, pr, report)
       } else {
-        core.info('No reports, can be either no linked issues or all issues are failed to setup')
+        core.info(
+          'No reports, can be either no linked issues or all issues are failed to setup'
+        )
       }
     }
   } else {
