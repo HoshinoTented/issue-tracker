@@ -34120,17 +34120,16 @@ async function run() {
     try {
         const token = coreExports.getInput('token');
         const issue = coreExports.getInput('issue');
-        const pull_request = coreExports.getInput('pull_request');
+        const pull_request = coreExports.getBooleanInput('pull_request');
         let issue_number;
         if (issue == '' || issue == 'ALL')
             issue_number = undefined;
         else
             issue_number = parseInt(issue);
-        let is_pr = pull_request == 'true';
-        if (is_pr && issue_number == undefined) {
+        if (pull_request && issue_number == undefined) {
             throw new Error("Must supply 'issue' when 'pull_request' is set to 'true'");
         }
-        track(token, githubExports.context.repo.owner, githubExports.context.repo.repo, is_pr ? undefined : issue_number, is_pr ? issue_number : undefined);
+        track(token, githubExports.context.repo.owner, githubExports.context.repo.repo, pull_request ? undefined : issue_number, pull_request ? issue_number : undefined);
     }
     catch (error) {
         // Fail the workflow run if an error occurs

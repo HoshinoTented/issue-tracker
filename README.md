@@ -10,7 +10,8 @@ Issue Tracker uses Github Actions to keep tracking to issues with aya codes.
 
 ## How to use
 
-See [workflow file](.github/workflows/main.yml), or:
+For automatically track issues on issue creation and main branch update, see
+[workflow file](.github/workflows/main.yml), or:
 
 ```yml
 on:
@@ -46,6 +47,33 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         # the issue number, can be empty, but issue-tracker can handle it
         issue: ${{ github.event.issue.number }}
+```
+
+For automatically track linked issues on pull request branch update:
+
+```yml
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+
+jobs:
+  run-tracker:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: write
+    steps:
+      # Setup Aya is quite expensive, you can replace this step by using previously built aya
+      - name: Setup Aya
+        uses: 'HoshinoTented/setup-aya@v1'
+      - name: Track Linked Issues
+        uses: 'HoshinoTented/issue-tracker@v1'
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue: ${{ github.event.pull_request.number }}
+          pull_request: true
 ```
 
 ## Q & A

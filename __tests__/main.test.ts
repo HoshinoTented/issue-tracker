@@ -13,5 +13,24 @@ jest.unstable_mockModule('@actions/core', () => core)
 
 // The module being tested should be imported dynamically. This ensures that the
 // mocks are used in place of any actual dependencies.
+const { run } = await import('../src/main.js')
 
-describe('main.ts', () => {})
+describe('main.ts', () => {
+  afterEach(() => {
+    jest.resetAllMocks()
+  })
+
+  test("fail on 'issue' == undefined && pull_request == true", async () => {
+    core.getInput.mockImplementation(() => '')
+    core.getBooleanInput.mockImplementation((name) =>
+      name == 'pull_request' ? true : false
+    )
+
+    await run()
+
+    expect(core.setFailed).toHaveBeenNthCalledWith(
+      1,
+      "Must supply 'issue' when 'pull_request' is set to 'true'"
+    )
+  })
+})
