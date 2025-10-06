@@ -75,8 +75,3 @@ jobs:
           issue: ${{ github.event.pull_request.number }}
           pull_request: true
 ```
-
-## Q & A
-
-Q: How do I re-run the issue after editing? A: Just re-run the corresponding
-workflow, we may support re-run issue by emotion after github support it.
