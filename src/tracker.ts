@@ -77,9 +77,13 @@ export async function track(
 
       // still publish report even there are invalid issues
 
-      core.info('Make and publish report')
-      const report = makePrReport(reports)
-      await publishReport(token, owner, repo, pr, report)
+      if (reports.length != 0) {
+        core.info('Make and publish report')
+        const report = makePrReport(reports)
+        await publishReport(token, owner, repo, pr, report)
+      } else {
+        core.info('No reports, can be either no linked issues or all issues are failed to setup')
+      }
     }
   } else {
     // triggered by issue creation
