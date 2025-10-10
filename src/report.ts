@@ -1,18 +1,15 @@
 import { GITHUB_ACTION_BOT_ID } from './constants.js'
-import { PrReport, SetupResult } from './types.js'
+import { PrReport, RichExecOutput, SetupResult } from './types.js'
 import github from '@actions/github'
-import exec from '@actions/exec'
 
 /**
  * Make a report, ends with new line
  * @param setupResult the project setup result
- * @param trackerWd project root
  * @param output the output of run
- * @returns report
  */
 export function makeReport(
   setupResult: SetupResult,
-  output: exec.ExecOutput & { stdall: string }
+  output: RichExecOutput
 ): string {
   // TODO: extends to multi-version case, but this is good for now.
   const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ')
@@ -37,7 +34,7 @@ ${v.report}`
 }
 
 /**
- * @param pr if not-null, then publish report to pull request instead of issue
+ * @param issue the issue/pull request number which the report publish to
  */
 export async function publishReport(
   token: string,

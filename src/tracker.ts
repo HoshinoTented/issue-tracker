@@ -131,7 +131,6 @@ async function trackOneAndReport(
 /**
  * Assumptions: issue has tracking label if `mark == false`, otherwise issue has no tracking label
  * @param mark whether mark the issue as tracking, should be false if issue-tracker is triggered by push on main branch
- * @param pr the pr number if track is triggered by head ref update of pull request
  * @return if track success, track fail if issue tracker is not enabled for the given issue.
  */
 async function trackOne(
@@ -156,7 +155,7 @@ async function trackOne(
     if (body != null && body != undefined) {
       const wd = process.cwd()
       core.info('Setup tracker working directory')
-      const trackerWd = await setupTrackEnv(wd)
+      const trackerWd = await setupTrackEnv(wd, TRACK_DIR)
       core.info('Parse and setup test library')
       const setupResult = await parseAndSetupTest(aya, wd, trackerWd, body)
 
@@ -201,8 +200,9 @@ async function trackOne(
 /**
  * Setup track environment, basically mkdir
  */
-async function setupTrackEnv(wd: string): Promise<string> {
-  const p = path.join(wd, TRACK_DIR)
+async function setupTrackEnv(wd: string, track_dir: string): Promise<string> {
+  // path.resolve == track_dir if track_dir is absolute
+  const p = path.resolve(wd, track_dir);
   await io.mkdirP(p)
   return p
 }

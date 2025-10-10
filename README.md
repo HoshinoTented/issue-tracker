@@ -75,3 +75,8 @@ jobs:
           issue: ${{ github.event.pull_request.number }}
           pull_request: true
 ```
+
+## Prerequirement
+
+* a `cli-fatjar.jar` must be installed at `$RUNNER_TOOL_CACHE/aya/ANY_VERSION/$RUNNER_ARCH`
+* no files or directory named `issue-tracker-dir` exist in the current working directory.
