@@ -1,13 +1,12 @@
 import github from '@actions/github'
 import { TRACKING_LABEL } from './constants.js'
+import { TrackerContext } from './types.js'
 
 export async function collectLinkedIssues(
-  token: string,
-  owner: string,
-  repo: string,
+  ctx: TrackerContext,
   pr: number
 ): Promise<number[]> {
-  const octokit = github.getOctokit(token)
+  const octokit = github.getOctokit(ctx.token)
   const resp = await octokit.graphql<{
     repository: {
       pullRequest: {
@@ -44,7 +43,7 @@ export async function collectLinkedIssues(
       }
     }
     `,
-    { owner, name: repo, pr }
+    { owner: ctx.owner, name: ctx.repo, pr }
   )
 
   return resp.repository.pullRequest.closingIssuesReferences.nodes

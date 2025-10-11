@@ -5,7 +5,7 @@ import path from 'path'
 import { promises as fs } from 'fs'
 
 import { Aya, findAya } from './find_aya.js'
-import { PrReport, SetupResult, TrackResult } from './types.js'
+import { PrReport, SetupResult, TrackerContext, TrackResult } from './types.js'
 import { TRACKING_LABEL, TRACK_DIR, ISSUE_FILE } from './constants.js'
 import { makePrReport, makeReport, publishReport } from './report.js'
 import { collectLinkedIssues } from './graphql_util.js'
@@ -14,13 +14,7 @@ import { collectLinkedIssues } from './graphql_util.js'
  * @param issue the issue to track, null if track all
  * @param pr set if triggered by head ref update of pull request, in this case, track will set error if any linked issue is failed
  */
-export async function track(
-  token: string,
-  owner: string,
-  repo: string,
-  issue?: number,
-  pr?: number
-) {
+export async function track(ctx: TrackerContext, issue?: number, pr?: number) {
   const aya = findAya()
   const invalids: number[] = []
   const fails: number[] = []
@@ -30,10 +24,10 @@ export async function track(
       // trigerred by master branch update
       core.info("'issue' is not specified, re-run all tracked issues.")
 
-      const octokit = github.getOctokit(token)
+      const octokit = github.getOctokit(ctx.token)
       const { data: issueList } = await octokit.rest.issues.listForRepo({
-        owner: owner,
-        repo: repo,
+        owner: ctx.owner,
+        repo: ctx.repo,
         state: 'open',
         labels: TRACKING_LABEL
       })
@@ -41,14 +35,7 @@ export async function track(
       for (const i of issueList) {
         // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
         // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
-        const success = await trackOneAndReport(
-          aya,
-          token,
-          owner,
-          repo,
-          i.number,
-          false
-        )
+        const success = await trackOneAndReport(ctx, aya, i.number, false)
         if (!success) {
           invalids.push(i.number)
         }
@@ -56,11 +43,11 @@ export async function track(
     } else {
       // triggered by pr branch update
       core.info('Track all linked issues of pull request #' + pr)
-      const issueList = await collectLinkedIssues(token, owner, repo, pr)
+      const issueList = await collectLinkedIssues(ctx, pr)
       const reports: PrReport[] = []
 
       for (const i of issueList) {
-        const result = await trackOne(aya, token, owner, repo, i, false)
+        const result = await trackOne(ctx, aya, i, false)
         if (result == null) {
           invalids.push(i)
         } else {
@@ -80,7 +67,7 @@ export async function track(
       if (reports.length != 0) {
         core.info('Make and publish report')
         const report = makePrReport(reports)
-        await publishReport(token, owner, repo, pr, report)
+        await publishReport(ctx, pr, report)
       } else {
         core.info(
           'No reports, can be either no linked issues or all issues are failed to setup'
@@ -89,7 +76,7 @@ export async function track(
     }
   } else {
     // triggered by issue creation
-    const result = await trackOneAndReport(aya, token, owner, repo, issue, true)
+    const result = await trackOneAndReport(ctx, aya, issue, true)
     if (result == null) {
       invalids.push(issue)
     }
@@ -110,20 +97,18 @@ export async function track(
 }
 
 async function trackOneAndReport(
+  ctx: TrackerContext,
   aya: Aya,
-  token: string,
-  owner: string,
-  repo: string,
   issue: number,
   mark: boolean
 ): Promise<boolean> {
-  const result = await trackOne(aya, token, owner, repo, issue, mark)
+  const result = await trackOne(ctx, aya, issue, mark)
   if (result == null) return false
 
   core.info('Make and publish report')
   const report = makeReport(result.setupResult, result.execResult)
 
-  await publishReport(token, owner, repo, issue, report)
+  await publishReport(ctx, issue, report)
 
   return true
 }
@@ -134,19 +119,17 @@ async function trackOneAndReport(
  * @return if track success, track fail if issue tracker is not enabled for the given issue.
  */
 async function trackOne(
+  ctx: TrackerContext,
   aya: Aya,
-  token: string,
-  owner: string,
-  repo: string,
   issue: number,
   mark: boolean
 ): Promise<TrackResult> {
   return core.group('#' + issue, async () => {
-    const octokit = github.getOctokit(token)
+    const octokit = github.getOctokit(ctx.token)
 
     const { data: issueData } = await octokit.rest.issues.get({
-      owner: owner,
-      repo: repo,
+      owner: ctx.owner,
+      repo: ctx.repo,
       issue_number: issue
     })
 
@@ -164,8 +147,8 @@ async function trackOne(
         if (mark) {
           core.info(`Mark issue #${issue} as tracking`)
           await octokit.rest.issues.addLabels({
-            owner: owner,
-            repo: repo,
+            owner: ctx.owner,
+            repo: ctx.repo,
             issue_number: issue,
             labels: [TRACKING_LABEL]
           })
@@ -202,7 +185,7 @@ async function trackOne(
  */
 async function setupTrackEnv(wd: string, track_dir: string): Promise<string> {
   // path.resolve == track_dir if track_dir is absolute
-  const p = path.resolve(wd, track_dir);
+  const p = path.resolve(wd, track_dir)
   await io.mkdirP(p)
   return p
 }

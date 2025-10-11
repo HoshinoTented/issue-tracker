@@ -1,5 +1,10 @@
 import { GITHUB_ACTION_BOT_ID } from './constants.js'
-import { PrReport, RichExecOutput, SetupResult } from './types.js'
+import {
+  PrReport,
+  RichExecOutput,
+  SetupResult,
+  TrackerContext
+} from './types.js'
 import github from '@actions/github'
 
 /**
@@ -37,18 +42,16 @@ ${v.report}`
  * @param issue the issue/pull request number which the report publish to
  */
 export async function publishReport(
-  token: string,
-  owner: string,
-  repo: string,
+  ctx: TrackerContext,
   issue: number,
   report: string
 ) {
-  const octokit = github.getOctokit(token)
+  const octokit = github.getOctokit(ctx.token)
 
   // issue and pulls share some api
   const { data: comments } = await octokit.rest.issues.listComments({
-    owner: owner,
-    repo: repo,
+    owner: ctx.owner,
+    repo: ctx.repo,
     issue_number: issue
   })
 
@@ -56,15 +59,15 @@ export async function publishReport(
 
   if (foundComment == undefined) {
     await octokit.rest.issues.createComment({
-      owner: owner,
-      repo: repo,
+      owner: ctx.owner,
+      repo: ctx.repo,
       issue_number: issue,
       body: report
     })
   } else {
     await octokit.rest.issues.updateComment({
-      owner: owner,
-      repo: repo,
+      owner: ctx.owner,
+      repo: ctx.repo,
       comment_id: foundComment.id,
       body: report
     })

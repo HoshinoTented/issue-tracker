@@ -24,9 +24,11 @@ export async function run(): Promise<void> {
     }
 
     track(
-      token,
-      github.context.repo.owner,
-      github.context.repo.repo,
+      {
+        token,
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo
+      },
       pull_request ? undefined : issue_number,
       pull_request ? issue_number : undefined
     )

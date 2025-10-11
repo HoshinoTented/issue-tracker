@@ -16,3 +16,9 @@ export type PrReport = {
   issue: number
   report: string
 }
+
+export type TrackerContext = {
+  token: string
+  owner: string
+  repo: string
+}
