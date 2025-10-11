@@ -1,60 +1,74 @@
 import { GITHUB_ACTION_BOT_ID } from './constants.js'
-import { SetupResult } from './types.js'
+import {
+  PrReport,
+  RichExecOutput,
+  SetupResult,
+  TrackerContext
+} from './types.js'
 import github from '@actions/github'
-import exec from '@actions/exec'
 
 /**
  * Make a report, ends with new line
  * @param setupResult the project setup result
- * @param trackerWd project root
  * @param output the output of run
- * @returns report
  */
 export function makeReport(
   setupResult: SetupResult,
-  output: exec.ExecOutput & { stdall: string }
+  output: RichExecOutput
 ): string {
   // TODO: extends to multi-version case, but this is good for now.
   const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ')
-  return `
-  The following aya files are detected: ${fileList}
-  Aya Version: \`${setupResult.version}\`
+  return `The following aya files are detected: ${fileList}
+Aya Version: \`${setupResult.version}\`
 
-  Exit code: ${output.exitCode}
-  Output:
-  \`\`\`plaintext
-  ${output.stdall}
-  \`\`\`
-  `
+Exit code: ${output.exitCode}
+Output:
+\`\`\`plaintext
+${output.stdall}
+\`\`\``
 }
 
+export function makePrReport(reports: PrReport[]): string {
+  return reports
+    .map(
+      (v) => `## #${v.issue}
+
+${v.report}`
+    )
+    .join('\n')
+}
+
+/**
+ * @param issue the issue/pull request number which the report publish to
+ */
 export async function publishReport(
-  token: string,
-  owner: string,
-  repo: string,
+  ctx: TrackerContext,
   issue: number,
   report: string
 ) {
-  const octokit = github.getOctokit(token)
+  const octokit = github.getOctokit(ctx.token)
+
+  // issue and pulls share some api
   const { data: comments } = await octokit.rest.issues.listComments({
-    owner: owner,
-    repo: repo,
+    owner: ctx.owner,
+    repo: ctx.repo,
     issue_number: issue
   })
 
-  const myComment = comments.find((c) => c.user?.id == GITHUB_ACTION_BOT_ID)
-  if (myComment == undefined) {
+  const foundComment = comments.find((c) => c.user?.id == GITHUB_ACTION_BOT_ID)
+
+  if (foundComment == undefined) {
     await octokit.rest.issues.createComment({
-      owner: owner,
-      repo: repo,
+      owner: ctx.owner,
+      repo: ctx.repo,
       issue_number: issue,
       body: report
     })
   } else {
     await octokit.rest.issues.updateComment({
-      owner: owner,
-      repo: repo,
-      comment_id: myComment.id,
+      owner: ctx.owner,
+      repo: ctx.repo,
+      comment_id: foundComment.id,
       body: report
     })
   }
