@@ -1,61 +1,33 @@
-import { GITHUB_ACTION_BOT_ID } from './constants.js'
-import { SetupResult } from './types.js'
-import github from '@actions/github'
-import exec from '@actions/exec'
+import { PrReport, RichExecOutput, SetupResult } from './types.js'
 
 /**
  * Make a report, ends with new line
  * @param setupResult the project setup result
- * @param trackerWd project root
  * @param output the output of run
- * @returns report
  */
 export function makeReport(
   setupResult: SetupResult,
-  output: exec.ExecOutput & { stdall: string }
+  output: RichExecOutput
 ): string {
   // TODO: extends to multi-version case, but this is good for now.
   const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ')
-  return `
-  The following aya files are detected: ${fileList}
-  Aya Version: \`${setupResult.version}\`
+  const displayVersion = setupResult.version || 'unspecified'
+  return `The following aya files are detected: ${fileList}
+Aya Version: \`${displayVersion}\`
 
-  Exit code: ${output.exitCode}
-  Output:
-  \`\`\`plaintext
-  ${output.stdall}
-  \`\`\`
-  `
+Exit code: ${output.exitCode}
+Output:
+\`\`\`plaintext
+${output.stdall.trimEnd()}
+\`\`\``
 }
 
-export async function publishReport(
-  token: string,
-  owner: string,
-  repo: string,
-  issue: number,
-  report: string
-) {
-  const octokit = github.getOctokit(token)
-  const { data: comments } = await octokit.rest.issues.listComments({
-    owner: owner,
-    repo: repo,
-    issue_number: issue
-  })
+export function makePrReport(reports: PrReport[]): string {
+  return reports
+    .map(
+      (v) => `## #${v.issue}
 
-  const myComment = comments.find((c) => c.user?.id == GITHUB_ACTION_BOT_ID)
-  if (myComment == undefined) {
-    await octokit.rest.issues.createComment({
-      owner: owner,
-      repo: repo,
-      issue_number: issue,
-      body: report
-    })
-  } else {
-    await octokit.rest.issues.updateComment({
-      owner: owner,
-      repo: repo,
-      comment_id: myComment.id,
-      body: report
-    })
-  }
+${v.report}`
+    )
+    .join('\n')
 }

@@ -10,7 +10,8 @@ Issue Tracker uses Github Actions to keep tracking to issues with aya codes.
 
 ## How to use
 
-See [workflow file](.github/workflows/main.yml), or:
+For automatically track issues on issue creation and main branch update, see
+[workflow file](.github/workflows/main.yml), or:
 
 ```yml
 on:
@@ -48,7 +49,36 @@ jobs:
         issue: ${{ github.event.issue.number }}
 ```
 
-## Q & A
+For automatically track linked issues on pull request branch update:
 
-Q: How do I re-run the issue after editing? A: Just re-run the corresponding
-workflow, we may support re-run issue by emotion after github support it.
+```yml
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+
+jobs:
+  run-tracker:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: write
+    steps:
+      # Setup Aya is quite expensive, you can replace this step by using previously built aya
+      - name: Setup Aya
+        uses: 'HoshinoTented/setup-aya@v1'
+      - name: Track Linked Issues
+        uses: 'HoshinoTented/issue-tracker@v1'
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue: ${{ github.event.pull_request.number }}
+          pull_request: true
+```
+
+## Prerequirement
+
+- a `cli-fatjar.jar` must be installed at
+  `$RUNNER_TOOL_CACHE/aya/ANY_VERSION/$RUNNER_ARCH` by `@actions/tool-cache`
+- no files or directory named `issue-tracker-dir` exist in the current working
+  directory.

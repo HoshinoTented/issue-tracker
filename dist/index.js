@@ -27279,7 +27279,7 @@ function requireCore () {
 
 var coreExports = requireCore();
 
-var github$1 = {};
+var github = {};
 
 var context = {};
 
@@ -31194,9 +31194,9 @@ function requireUtils () {
 var hasRequiredGithub;
 
 function requireGithub () {
-	if (hasRequiredGithub) return github$1;
+	if (hasRequiredGithub) return github;
 	hasRequiredGithub = 1;
-	var __createBinding = (github$1 && github$1.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+	var __createBinding = (github && github.__createBinding) || (Object.create ? (function(o, m, k, k2) {
 	    if (k2 === undefined) k2 = k;
 	    var desc = Object.getOwnPropertyDescriptor(m, k);
 	    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -31207,23 +31207,23 @@ function requireGithub () {
 	    if (k2 === undefined) k2 = k;
 	    o[k2] = m[k];
 	}));
-	var __setModuleDefault = (github$1 && github$1.__setModuleDefault) || (Object.create ? (function(o, v) {
+	var __setModuleDefault = (github && github.__setModuleDefault) || (Object.create ? (function(o, v) {
 	    Object.defineProperty(o, "default", { enumerable: true, value: v });
 	}) : function(o, v) {
 	    o["default"] = v;
 	});
-	var __importStar = (github$1 && github$1.__importStar) || function (mod) {
+	var __importStar = (github && github.__importStar) || function (mod) {
 	    if (mod && mod.__esModule) return mod;
 	    var result = {};
 	    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
 	    __setModuleDefault(result, mod);
 	    return result;
 	};
-	Object.defineProperty(github$1, "__esModule", { value: true });
-	github$1.getOctokit = github$1.context = void 0;
+	Object.defineProperty(github, "__esModule", { value: true });
+	github.getOctokit = github.context = void 0;
 	const Context = __importStar(requireContext());
 	const utils_1 = requireUtils();
-	github$1.context = new Context.Context();
+	github.context = new Context.Context();
 	/**
 	 * Returns a hydrated octokit ready to use for GitHub Actions
 	 *
@@ -31234,13 +31234,12 @@ function requireGithub () {
 	    const GitHubWithPlugins = utils_1.GitHub.plugin(...additionalPlugins);
 	    return new GitHubWithPlugins((0, utils_1.getOctokitOptions)(token, options));
 	}
-	github$1.getOctokit = getOctokit;
+	github.getOctokit = getOctokit;
 	
-	return github$1;
+	return github;
 }
 
 var githubExports = requireGithub();
-var github = /*@__PURE__*/getDefaultExportFromCjs(githubExports);
 
 var ioExports = requireIo();
 
@@ -33817,7 +33816,6 @@ var toolCacheExports = requireToolCache();
 var execExports = requireExec();
 
 const ayaToolName = 'aya';
-const semverNightly = '0.0.0';
 const cliFileName = 'cli-fatjar.jar';
 const TRACK_DIR = 'issue-tracker-dir';
 const ISSUE_FILE = 'issue.md';
@@ -33855,7 +33853,7 @@ function findAya() {
     const ayaHome = toolCacheExports.find(ayaToolName, versions[0]);
     const ayaJar = path.join(ayaHome, cliFileName);
     if (!require$$1.existsSync(ayaJar)) {
-        throw new Error(`Aya not found for version ${semverNightly}: ${ayaJar}`);
+        throw new Error(`Aya isn't properly installed: not found ${ayaJar}`);
     }
     return new Aya(ayaJar);
 }
@@ -33863,135 +33861,246 @@ function findAya() {
 /**
  * Make a report, ends with new line
  * @param setupResult the project setup result
- * @param trackerWd project root
  * @param output the output of run
- * @returns report
  */
 function makeReport(setupResult, output) {
     // TODO: extends to multi-version case, but this is good for now.
     const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ');
-    return `
-  The following aya files are detected: ${fileList}
-  Aya Version: \`${setupResult.version}\`
+    const displayVersion = setupResult.version || 'unspecified';
+    return `The following aya files are detected: ${fileList}
+Aya Version: \`${displayVersion}\`
 
-  Exit code: ${output.exitCode}
-  Output:
-  \`\`\`plaintext
-  ${output.stdall}
-  \`\`\`
-  `;
+Exit code: ${output.exitCode}
+Output:
+\`\`\`plaintext
+${output.stdall.trimEnd()}
+\`\`\``;
 }
-async function publishReport(token, owner, repo, issue, report) {
-    const octokit = github.getOctokit(token);
-    const { data: comments } = await octokit.rest.issues.listComments({
-        owner: owner,
-        repo: repo,
-        issue_number: issue
-    });
-    const myComment = comments.find((c) => c.user?.id == GITHUB_ACTION_BOT_ID);
-    if (myComment == undefined) {
-        await octokit.rest.issues.createComment({
-            owner: owner,
-            repo: repo,
+function makePrReport(reports) {
+    return reports
+        .map((v) => `## #${v.issue}
+
+${v.report}`)
+        .join('\n');
+}
+
+async function collectLinkedIssues(ctx, pr) {
+    const octokit = githubExports.getOctokit(ctx.token);
+    const resp = await octokit.graphql(`
+    query collectLinkedIssues($owner: String!, $name: String!, $pr: Int!) {
+      repository(owner: $owner, name: $name) {
+        pullRequest(number: $pr) {
+          closingIssuesReferences(first: 5) { # are you sure we have more than 5 linked issues?
+            nodes {
+              closed
+              number
+              labels(first: 10) {
+                nodes {
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    `, { owner: ctx.owner, name: ctx.repo, pr });
+    return resp.repository.pullRequest.closingIssuesReferences.nodes
+        .filter((it) => !it.closed && it.labels.nodes.some((ls) => ls.name == TRACKING_LABEL))
+        .map((it) => it.number);
+}
+function dryRunPrint(name, message) {
+    const title = 'Dry Run: ' + name;
+    if (message == null) {
+        coreExports.info(title);
+    }
+    else {
+        coreExports.group(title, async () => {
+            coreExports.info(message);
+        });
+    }
+}
+async function markIssueAsTracking(ctx, issue) {
+    if (!ctx.dry_run) {
+        const octokit = githubExports.getOctokit(ctx.token);
+        await octokit.rest.issues.addLabels({
+            owner: ctx.owner,
+            repo: ctx.repo,
             issue_number: issue,
-            body: report
+            labels: [TRACKING_LABEL]
         });
     }
     else {
-        await octokit.rest.issues.updateComment({
-            owner: owner,
-            repo: repo,
-            comment_id: myComment.id,
-            body: report
+        dryRunPrint(`Mark Issue #${issue} As Tracking`);
+    }
+}
+/**
+ * @param issue the issue/pull request number which the report publish to
+ */
+async function publishReport(ctx, issue, report) {
+    if (!ctx.dry_run) {
+        const octokit = githubExports.getOctokit(ctx.token);
+        // issue and pulls share some api
+        const { data: comments } = await octokit.rest.issues.listComments({
+            owner: ctx.owner,
+            repo: ctx.repo,
+            issue_number: issue
         });
+        const foundComment = comments.find((c) => c.user?.id == GITHUB_ACTION_BOT_ID);
+        if (foundComment == undefined) {
+            await octokit.rest.issues.createComment({
+                owner: ctx.owner,
+                repo: ctx.repo,
+                issue_number: issue,
+                body: report
+            });
+        }
+        else {
+            await octokit.rest.issues.updateComment({
+                owner: ctx.owner,
+                repo: ctx.repo,
+                comment_id: foundComment.id,
+                body: report
+            });
+        }
+    }
+    else {
+        dryRunPrint(`Publish Report to Issue ${issue}`, report);
     }
 }
 
-async function track(token, owner, repo, issue) {
+/**
+ * @param issue the issue to track, null if track all
+ * @param pr set if triggered by head ref update of pull request, in this case, track will set error if any linked issue is failed
+ */
+async function track(ctx, issue, pr) {
     const aya = findAya();
+    const invalids = [];
     const fails = [];
     if (issue == undefined) {
-        coreExports.info("'issue' is not specified, re-run all tracked issues.");
-        const octokit = githubExports.getOctokit(token);
-        const { data: issueList } = await octokit.rest.issues.listForRepo({
-            owner: owner,
-            repo: repo,
-            state: 'open',
-            labels: TRACKING_LABEL
-        });
-        for (const i of issueList) {
-            // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
-            // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
-            const success = await trackOne(aya, token, owner, repo, i.number, false);
-            if (!success) {
-                fails.push(i.number);
+        if (pr == undefined) {
+            // trigerred by master branch update
+            coreExports.info("'issue' is not specified, re-run all tracked issues.");
+            const octokit = githubExports.getOctokit(ctx.token);
+            const { data: issueList } = await octokit.rest.issues.listForRepo({
+                owner: ctx.owner,
+                repo: ctx.repo,
+                state: 'open',
+                labels: TRACKING_LABEL
+            });
+            for (const i of issueList) {
+                // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
+                // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
+                const success = await trackOneAndReport(ctx, aya, i.number, false);
+                if (!success) {
+                    invalids.push(i.number);
+                }
+            }
+        }
+        else {
+            // triggered by pr branch update
+            coreExports.info('Track all linked issues of pull request #' + pr);
+            const issueList = await collectLinkedIssues(ctx, pr);
+            const reports = [];
+            for (const i of issueList) {
+                const result = await trackOne(ctx, aya, i, false);
+                if (result == null) {
+                    invalids.push(i);
+                }
+                else {
+                    if (result.execResult.exitCode != 0) {
+                        fails.push(i);
+                    }
+                    reports.push({
+                        issue: i,
+                        report: makeReport(result.setupResult, result.execResult)
+                    });
+                }
+            }
+            // still publish report even there are invalid issues
+            if (reports.length != 0) {
+                coreExports.info('Make and publish report');
+                const report = makePrReport(reports);
+                await publishReport(ctx, pr, report);
+            }
+            else {
+                coreExports.info('No reports, can be either no linked issues or all issues are failed to setup');
             }
         }
     }
     else {
-        const success = await trackOne(aya, token, owner, repo, issue, true);
-        if (!success) {
-            fails.push(issue);
+        // triggered by issue creation
+        const result = await trackOneAndReport(ctx, aya, issue, true);
+        if (result == null) {
+            invalids.push(issue);
         }
     }
-    if (fails.length > 0) {
-        throw new Error('The following issue was marked as tracking but fails to track: ' +
-            fails.map((n) => '#' + n).join(' '));
+    if (invalids.length > 0) {
+        coreExports.setFailed('The following issues were marked as tracking but fail to track: ' +
+            invalids.map((n) => '#' + n).join(' '));
     }
+    if (fails.length > 0) {
+        coreExports.setFailed('The following issues fail: ' + fails.map((n) => '#' + n).join(' '));
+    }
+}
+async function trackOneAndReport(ctx, aya, issue, mark) {
+    const result = await trackOne(ctx, aya, issue, mark);
+    if (result == null)
+        return false;
+    coreExports.info('Make and publish report');
+    const report = makeReport(result.setupResult, result.execResult);
+    await publishReport(ctx, issue, report);
+    return true;
 }
 /**
  * Assumptions: issue has tracking label if `mark == false`, otherwise issue has no tracking label
  * @param mark whether mark the issue as tracking, should be false if issue-tracker is triggered by push on main branch
  * @return if track success, track fail if issue tracker is not enabled for the given issue.
  */
-async function trackOne(aya, token, owner, repo, issue, mark) {
+async function trackOne(ctx, aya, issue, mark) {
     return coreExports.group('#' + issue, async () => {
-        const octokit = githubExports.getOctokit(token);
+        const octokit = githubExports.getOctokit(ctx.token);
         const { data: issueData } = await octokit.rest.issues.get({
-            owner: owner,
-            repo: repo,
+            owner: ctx.owner,
+            repo: ctx.repo,
             issue_number: issue
         });
         const body = issueData.body;
         if (body != null && body != undefined) {
             const wd = process.cwd();
             coreExports.info('Setup tracker working directory');
-            const trackerWd = await setupTrackEnv(wd);
+            const trackerWd = await setupTrackEnv(wd, TRACK_DIR);
             coreExports.info('Parse and setup test library');
             const setupResult = await parseAndSetupTest(aya, wd, trackerWd, body);
             if (setupResult != null) {
                 coreExports.info('Setup test library successful');
                 if (mark) {
                     coreExports.info(`Mark issue #${issue} as tracking`);
-                    await octokit.rest.issues.addLabels({
-                        owner: owner,
-                        repo: repo,
-                        issue_number: issue,
-                        labels: [TRACKING_LABEL]
-                    });
+                    await markIssueAsTracking(ctx, issue);
                 }
                 // TODO: we need to setup aya of target version, but we have nightly only
                 coreExports.info('Run test library');
                 const output = await aya.execOutput('--remake', '--ascii-only', '--no-color', trackerWd);
-                coreExports.info('Make and publish report');
-                const report = makeReport(setupResult, output);
-                await publishReport(token, owner, repo, issue, report);
-                return true;
+                return {
+                    setupResult,
+                    execResult: output
+                };
             }
             else {
                 coreExports.info('No test library was setup, issue-tracker may be disabled or something is wrong');
                 // Don't untrack the issue even project setup fails, but we fails the job
-                return false;
+                return null;
             }
         }
-        return false;
+        return null;
     });
 }
 /**
  * Setup track environment, basically mkdir
  */
-async function setupTrackEnv(wd) {
-    const p = path.join(wd, TRACK_DIR);
+async function setupTrackEnv(wd, track_dir) {
+    // path.resolve == track_dir if track_dir is absolute
+    const p = path.resolve(wd, track_dir);
     await ioExports.mkdirP(p);
     return p;
 }
@@ -34002,25 +34111,28 @@ async function setupTrackEnv(wd) {
  * @param trackDir directory that will be used for setting up aya project
  * @param content the content of the issue
  * @returns null if unable to setup aya project, this can be either the issue doesn't enable issue-tracker, or something is wrong;
- *          aya version is returned if everything is fine.
+ *          [SetupResult] is returned if everything is fine.
  */
 async function parseAndSetupTest(aya, wd, trackDir, content) {
     const issueFile = path.join(wd, ISSUE_FILE);
     await promises.writeFile(issueFile, content);
-    const { exitCode: exitCode, stdout: stdout } = await aya.execOutput('--setup-issue', issueFile, '-o', trackDir);
+    const { exitCode: exitCode } = await aya.execOutput('--setup-issue', issueFile, '-o', trackDir);
     if (exitCode != 0) {
         return null;
     }
-    // not sure if this works on windows/macOS
-    const lines = stdout.split('\n');
-    if (lines.length < 2) {
-        throw new Error('Broken output while setting up issue project:\n' + stdout);
+    const metadata = await promises.readFile(path.join(trackDir, 'metadata.json'), 'utf-8');
+    // TODO: maybe validate?
+    const output = JSON.parse(metadata);
+    let versionString = null;
+    if (output.version != null) {
+        versionString = `${output.version.major}.${output.version.minor}.${output.version.patch}`;
+        if (output.version.snapshot) {
+            versionString = versionString + '-SNAPSHOT';
+        }
     }
-    const [version, rawFiles] = lines;
-    const files = rawFiles ? [] : rawFiles.split(' ');
     return {
-        version: version == 'null' ? null : version,
-        files: files
+        version: versionString,
+        files: output.files
     };
 }
 
@@ -34031,14 +34143,24 @@ async function parseAndSetupTest(aya, wd, trackDir, content) {
  */
 async function run() {
     try {
-        const issue = coreExports.getInput('issue');
         const token = coreExports.getInput('token');
+        const issue = coreExports.getInput('issue');
+        const pull_request = coreExports.getBooleanInput('pull_request');
+        const dry_run = coreExports.getBooleanInput('dry-run');
         let issue_number;
         if (issue == '' || issue == 'ALL')
             issue_number = undefined;
         else
             issue_number = parseInt(issue);
-        track(token, githubExports.context.repo.owner, githubExports.context.repo.repo, issue_number);
+        if (pull_request && issue_number == undefined) {
+            throw new Error("Must supply 'issue' when 'pull_request' is set to 'true'");
+        }
+        track({
+            token,
+            owner: githubExports.context.repo.owner,
+            repo: githubExports.context.repo.repo,
+            dry_run
+        }, pull_request ? undefined : issue_number, pull_request ? issue_number : undefined);
     }
     catch (error) {
         // Fail the workflow run if an error occurs

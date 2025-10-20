@@ -9,18 +9,30 @@ import { track } from './tracker.js'
  */
 export async function run(): Promise<void> {
   try {
-    const issue = core.getInput('issue')
     const token = core.getInput('token')
+    const issue = core.getInput('issue')
+    const pull_request = core.getBooleanInput('pull_request')
+    const dry_run = core.getBooleanInput('dry-run')
 
     let issue_number: number | undefined
     if (issue == '' || issue == 'ALL') issue_number = undefined
     else issue_number = parseInt(issue)
 
+    if (pull_request && issue_number == undefined) {
+      throw new Error(
+        "Must supply 'issue' when 'pull_request' is set to 'true'"
+      )
+    }
+
     track(
-      token,
-      github.context.repo.owner,
-      github.context.repo.repo,
-      issue_number
+      {
+        token,
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        dry_run
+      },
+      pull_request ? undefined : issue_number,
+      pull_request ? issue_number : undefined
     )
   } catch (error) {
     // Fail the workflow run if an error occurs

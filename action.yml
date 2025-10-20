@@ -11,10 +11,18 @@ branding:
 inputs:
   token:
     description: Github token
-    required: true
+    default: ${{ github.token }}
   issue:
-    description: the url of target issue, 'ALL' if track all issue
+    description: the number of target issue, 'ALL' if track all issue
     default: 'ALL'
+  pull_request:
+    description: whether `issue` should be considered a pull request
+    default: false
+  dry-run:
+    description:
+      if set true, all write-action will not performed and will be printed to
+      stdout
+    default: false
 
 runs:
   using: node24
