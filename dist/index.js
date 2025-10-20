@@ -34102,7 +34102,7 @@ async function setupTrackEnv(wd, track_dir) {
     // path.resolve == track_dir if track_dir is absolute
     const p = path.resolve(wd, track_dir);
     if (existsSync(p)) {
-        coreExports.debug('Delete previous working directory: ' + p);
+        coreExports.debug('Clean working directory: ' + p);
         ioExports.rmRF(p);
     }
     await ioExports.mkdirP(p);

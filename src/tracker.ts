@@ -186,7 +186,7 @@ async function setupTrackEnv(wd: string, track_dir: string): Promise<string> {
   // path.resolve == track_dir if track_dir is absolute
   const p = path.resolve(wd, track_dir)
   if (existsSync(p)) {
-    core.debug('Delete previous working directory: ' + p)
+    core.debug('Clean working directory: ' + p)
     io.rmRF(p)
   }
 
