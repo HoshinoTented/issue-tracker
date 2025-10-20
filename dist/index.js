@@ -63,7 +63,7 @@ function getAugmentedNamespace(n) {
 	return a;
 }
 
-var core$1 = {};
+var core = {};
 
 var command = {};
 
@@ -26927,10 +26927,10 @@ function requirePlatform () {
 var hasRequiredCore;
 
 function requireCore () {
-	if (hasRequiredCore) return core$1;
+	if (hasRequiredCore) return core;
 	hasRequiredCore = 1;
 	(function (exports) {
-		var __createBinding = (core$1 && core$1.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+		var __createBinding = (core && core.__createBinding) || (Object.create ? (function(o, m, k, k2) {
 		    if (k2 === undefined) k2 = k;
 		    var desc = Object.getOwnPropertyDescriptor(m, k);
 		    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -26941,19 +26941,19 @@ function requireCore () {
 		    if (k2 === undefined) k2 = k;
 		    o[k2] = m[k];
 		}));
-		var __setModuleDefault = (core$1 && core$1.__setModuleDefault) || (Object.create ? (function(o, v) {
+		var __setModuleDefault = (core && core.__setModuleDefault) || (Object.create ? (function(o, v) {
 		    Object.defineProperty(o, "default", { enumerable: true, value: v });
 		}) : function(o, v) {
 		    o["default"] = v;
 		});
-		var __importStar = (core$1 && core$1.__importStar) || function (mod) {
+		var __importStar = (core && core.__importStar) || function (mod) {
 		    if (mod && mod.__esModule) return mod;
 		    var result = {};
 		    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
 		    __setModuleDefault(result, mod);
 		    return result;
 		};
-		var __awaiter = (core$1 && core$1.__awaiter) || function (thisArg, _arguments, P, generator) {
+		var __awaiter = (core && core.__awaiter) || function (thisArg, _arguments, P, generator) {
 		    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
 		    return new (P || (P = Promise))(function (resolve, reject) {
 		        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -27273,14 +27273,13 @@ function requireCore () {
 		 */
 		exports.platform = __importStar(requirePlatform());
 		
-	} (core$1));
-	return core$1;
+	} (core));
+	return core;
 }
 
 var coreExports = requireCore();
-var core = /*@__PURE__*/getDefaultExportFromCjs(coreExports);
 
-var github$1 = {};
+var github = {};
 
 var context = {};
 
@@ -31195,9 +31194,9 @@ function requireUtils () {
 var hasRequiredGithub;
 
 function requireGithub () {
-	if (hasRequiredGithub) return github$1;
+	if (hasRequiredGithub) return github;
 	hasRequiredGithub = 1;
-	var __createBinding = (github$1 && github$1.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+	var __createBinding = (github && github.__createBinding) || (Object.create ? (function(o, m, k, k2) {
 	    if (k2 === undefined) k2 = k;
 	    var desc = Object.getOwnPropertyDescriptor(m, k);
 	    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -31208,23 +31207,23 @@ function requireGithub () {
 	    if (k2 === undefined) k2 = k;
 	    o[k2] = m[k];
 	}));
-	var __setModuleDefault = (github$1 && github$1.__setModuleDefault) || (Object.create ? (function(o, v) {
+	var __setModuleDefault = (github && github.__setModuleDefault) || (Object.create ? (function(o, v) {
 	    Object.defineProperty(o, "default", { enumerable: true, value: v });
 	}) : function(o, v) {
 	    o["default"] = v;
 	});
-	var __importStar = (github$1 && github$1.__importStar) || function (mod) {
+	var __importStar = (github && github.__importStar) || function (mod) {
 	    if (mod && mod.__esModule) return mod;
 	    var result = {};
 	    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
 	    __setModuleDefault(result, mod);
 	    return result;
 	};
-	Object.defineProperty(github$1, "__esModule", { value: true });
-	github$1.getOctokit = github$1.context = void 0;
+	Object.defineProperty(github, "__esModule", { value: true });
+	github.getOctokit = github.context = void 0;
 	const Context = __importStar(requireContext());
 	const utils_1 = requireUtils();
-	github$1.context = new Context.Context();
+	github.context = new Context.Context();
 	/**
 	 * Returns a hydrated octokit ready to use for GitHub Actions
 	 *
@@ -31235,13 +31234,12 @@ function requireGithub () {
 	    const GitHubWithPlugins = utils_1.GitHub.plugin(...additionalPlugins);
 	    return new GitHubWithPlugins((0, utils_1.getOctokitOptions)(token, options));
 	}
-	github$1.getOctokit = getOctokit;
+	github.getOctokit = getOctokit;
 	
-	return github$1;
+	return github;
 }
 
 var githubExports = requireGithub();
-var github = /*@__PURE__*/getDefaultExportFromCjs(githubExports);
 
 var ioExports = requireIo();
 
@@ -33886,7 +33884,7 @@ ${v.report}`)
 }
 
 async function collectLinkedIssues(ctx, pr) {
-    const octokit = github.getOctokit(ctx.token);
+    const octokit = githubExports.getOctokit(ctx.token);
     const resp = await octokit.graphql(`
     query collectLinkedIssues($owner: String!, $name: String!, $pr: Int!) {
       repository(owner: $owner, name: $name) {
@@ -33913,17 +33911,17 @@ async function collectLinkedIssues(ctx, pr) {
 function dryRunPrint(name, message) {
     const title = 'Dry Run: ' + name;
     if (message == null) {
-        core.info(title);
+        coreExports.info(title);
     }
     else {
-        core.group(title, async () => {
-            core.info(message);
+        coreExports.group(title, async () => {
+            coreExports.info(message);
         });
     }
 }
 async function markIssueAsTracking(ctx, issue) {
     if (!ctx.dry_run) {
-        const octokit = github.getOctokit(ctx.token);
+        const octokit = githubExports.getOctokit(ctx.token);
         await octokit.rest.issues.addLabels({
             owner: ctx.owner,
             repo: ctx.repo,
@@ -33940,7 +33938,7 @@ async function markIssueAsTracking(ctx, issue) {
  */
 async function publishReport(ctx, issue, report) {
     if (!ctx.dry_run) {
-        const octokit = github.getOctokit(ctx.token);
+        const octokit = githubExports.getOctokit(ctx.token);
         // issue and pulls share some api
         const { data: comments } = await octokit.rest.issues.listComments({
             owner: ctx.owner,
