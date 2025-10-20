@@ -18,7 +18,7 @@ Aya Version: \`${displayVersion}\`
 Exit code: ${output.exitCode}
 Output:
 \`\`\`plaintext
-${output.stdall}
+${output.stdall.trimEnd()}
 \`\`\``
 }
 
