@@ -12,6 +12,7 @@ export async function run(): Promise<void> {
     const token = core.getInput('token')
     const issue = core.getInput('issue')
     const pull_request = core.getBooleanInput('pull_request')
+    const dry_run = core.getBooleanInput('dry-run')
 
     let issue_number: number | undefined
     if (issue == '' || issue == 'ALL') issue_number = undefined
@@ -27,7 +28,8 @@ export async function run(): Promise<void> {
       {
         token,
         owner: github.context.repo.owner,
-        repo: github.context.repo.repo
+        repo: github.context.repo.repo,
+        dry_run
       },
       pull_request ? undefined : issue_number,
       pull_request ? issue_number : undefined

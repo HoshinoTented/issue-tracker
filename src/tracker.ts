@@ -7,8 +7,12 @@ import { promises as fs } from 'fs'
 import { Aya, findAya } from './find_aya.js'
 import { PrReport, SetupResult, TrackerContext, TrackResult } from './types.js'
 import { TRACKING_LABEL, TRACK_DIR, ISSUE_FILE } from './constants.js'
-import { makePrReport, makeReport, publishReport } from './report.js'
-import { collectLinkedIssues } from './graphql_util.js'
+import { makePrReport, makeReport } from './report.js'
+import {
+  collectLinkedIssues,
+  markIssueAsTracking,
+  publishReport
+} from './github_util.js'
 
 /**
  * @param issue the issue to track, null if track all
@@ -146,12 +150,7 @@ async function trackOne(
         core.info('Setup test library successful')
         if (mark) {
           core.info(`Mark issue #${issue} as tracking`)
-          await octokit.rest.issues.addLabels({
-            owner: ctx.owner,
-            repo: ctx.repo,
-            issue_number: issue,
-            labels: [TRACKING_LABEL]
-          })
+          await markIssueAsTracking(ctx, issue)
         }
 
         // TODO: we need to setup aya of target version, but we have nightly only

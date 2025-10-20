@@ -63,7 +63,7 @@ function getAugmentedNamespace(n) {
 	return a;
 }
 
-var core = {};
+var core$1 = {};
 
 var command = {};
 
@@ -26927,10 +26927,10 @@ function requirePlatform () {
 var hasRequiredCore;
 
 function requireCore () {
-	if (hasRequiredCore) return core;
+	if (hasRequiredCore) return core$1;
 	hasRequiredCore = 1;
 	(function (exports) {
-		var __createBinding = (core && core.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+		var __createBinding = (core$1 && core$1.__createBinding) || (Object.create ? (function(o, m, k, k2) {
 		    if (k2 === undefined) k2 = k;
 		    var desc = Object.getOwnPropertyDescriptor(m, k);
 		    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -26941,19 +26941,19 @@ function requireCore () {
 		    if (k2 === undefined) k2 = k;
 		    o[k2] = m[k];
 		}));
-		var __setModuleDefault = (core && core.__setModuleDefault) || (Object.create ? (function(o, v) {
+		var __setModuleDefault = (core$1 && core$1.__setModuleDefault) || (Object.create ? (function(o, v) {
 		    Object.defineProperty(o, "default", { enumerable: true, value: v });
 		}) : function(o, v) {
 		    o["default"] = v;
 		});
-		var __importStar = (core && core.__importStar) || function (mod) {
+		var __importStar = (core$1 && core$1.__importStar) || function (mod) {
 		    if (mod && mod.__esModule) return mod;
 		    var result = {};
 		    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
 		    __setModuleDefault(result, mod);
 		    return result;
 		};
-		var __awaiter = (core && core.__awaiter) || function (thisArg, _arguments, P, generator) {
+		var __awaiter = (core$1 && core$1.__awaiter) || function (thisArg, _arguments, P, generator) {
 		    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
 		    return new (P || (P = Promise))(function (resolve, reject) {
 		        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -27273,11 +27273,12 @@ function requireCore () {
 		 */
 		exports.platform = __importStar(requirePlatform());
 		
-	} (core));
-	return core;
+	} (core$1));
+	return core$1;
 }
 
 var coreExports = requireCore();
+var core = /*@__PURE__*/getDefaultExportFromCjs(coreExports);
 
 var github$1 = {};
 
@@ -33883,35 +33884,6 @@ function makePrReport(reports) {
 ${v.report}`)
         .join('\n');
 }
-/**
- * @param issue the issue/pull request number which the report publish to
- */
-async function publishReport(ctx, issue, report) {
-    const octokit = github.getOctokit(ctx.token);
-    // issue and pulls share some api
-    const { data: comments } = await octokit.rest.issues.listComments({
-        owner: ctx.owner,
-        repo: ctx.repo,
-        issue_number: issue
-    });
-    const foundComment = comments.find((c) => c.user?.id == GITHUB_ACTION_BOT_ID);
-    if (foundComment == undefined) {
-        await octokit.rest.issues.createComment({
-            owner: ctx.owner,
-            repo: ctx.repo,
-            issue_number: issue,
-            body: report
-        });
-    }
-    else {
-        await octokit.rest.issues.updateComment({
-            owner: ctx.owner,
-            repo: ctx.repo,
-            comment_id: foundComment.id,
-            body: report
-        });
-    }
-}
 
 async function collectLinkedIssues(ctx, pr) {
     const octokit = github.getOctokit(ctx.token);
@@ -33937,6 +33909,65 @@ async function collectLinkedIssues(ctx, pr) {
     return resp.repository.pullRequest.closingIssuesReferences.nodes
         .filter((it) => !it.closed && it.labels.nodes.some((ls) => ls.name == TRACKING_LABEL))
         .map((it) => it.number);
+}
+function dryRunPrint(name, message) {
+    const title = 'Dry Run: ' + name;
+    if (message == null) {
+        core.info(title);
+    }
+    else {
+        core.group(title, async () => {
+            core.info(message);
+        });
+    }
+}
+async function markIssueAsTracking(ctx, issue) {
+    if (!ctx.dry_run) {
+        const octokit = github.getOctokit(ctx.token);
+        await octokit.rest.issues.addLabels({
+            owner: ctx.owner,
+            repo: ctx.repo,
+            issue_number: issue,
+            labels: [TRACKING_LABEL]
+        });
+    }
+    else {
+        dryRunPrint(`Mark Issue #${issue} As Tracking`);
+    }
+}
+/**
+ * @param issue the issue/pull request number which the report publish to
+ */
+async function publishReport(ctx, issue, report) {
+    if (!ctx.dry_run) {
+        const octokit = github.getOctokit(ctx.token);
+        // issue and pulls share some api
+        const { data: comments } = await octokit.rest.issues.listComments({
+            owner: ctx.owner,
+            repo: ctx.repo,
+            issue_number: issue
+        });
+        const foundComment = comments.find((c) => c.user?.id == GITHUB_ACTION_BOT_ID);
+        if (foundComment == undefined) {
+            await octokit.rest.issues.createComment({
+                owner: ctx.owner,
+                repo: ctx.repo,
+                issue_number: issue,
+                body: report
+            });
+        }
+        else {
+            await octokit.rest.issues.updateComment({
+                owner: ctx.owner,
+                repo: ctx.repo,
+                comment_id: foundComment.id,
+                body: report
+            });
+        }
+    }
+    else {
+        dryRunPrint(`Publish Report to Issue ${issue}`, report);
+    }
 }
 
 /**
@@ -34046,12 +34077,7 @@ async function trackOne(ctx, aya, issue, mark) {
                 coreExports.info('Setup test library successful');
                 if (mark) {
                     coreExports.info(`Mark issue #${issue} as tracking`);
-                    await octokit.rest.issues.addLabels({
-                        owner: ctx.owner,
-                        repo: ctx.repo,
-                        issue_number: issue,
-                        labels: [TRACKING_LABEL]
-                    });
+                    await markIssueAsTracking(ctx, issue);
                 }
                 // TODO: we need to setup aya of target version, but we have nightly only
                 coreExports.info('Run test library');
@@ -34118,6 +34144,7 @@ async function run() {
         const token = coreExports.getInput('token');
         const issue = coreExports.getInput('issue');
         const pull_request = coreExports.getBooleanInput('pull_request');
+        const dry_run = coreExports.getBooleanInput('dry-run');
         let issue_number;
         if (issue == '' || issue == 'ALL')
             issue_number = undefined;
@@ -34129,7 +34156,8 @@ async function run() {
         track({
             token,
             owner: githubExports.context.repo.owner,
-            repo: githubExports.context.repo.repo
+            repo: githubExports.context.repo.repo,
+            dry_run
         }, pull_request ? undefined : issue_number, pull_request ? issue_number : undefined);
     }
     catch (error) {
