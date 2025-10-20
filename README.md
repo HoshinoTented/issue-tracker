@@ -79,6 +79,6 @@ jobs:
 ## Prerequirement
 
 - a `cli-fatjar.jar` must be installed at
-  `$RUNNER_TOOL_CACHE/aya/ANY_VERSION/$RUNNER_ARCH`
+  `$RUNNER_TOOL_CACHE/aya/ANY_VERSION/$RUNNER_ARCH` by `@actions/tool-cache`
 - no files or directory named `issue-tracker-dir` exist in the current working
   directory.

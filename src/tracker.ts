@@ -4,7 +4,7 @@ import * as io from '@actions/io'
 import path from 'path'
 import { promises as fs } from 'fs'
 
-import { Aya, findAya } from './find_aya.js'
+import { Aya, findAya, IssueSetupOutput } from './aya.js'
 import { PrReport, SetupResult, TrackerContext, TrackResult } from './types.js'
 import { TRACKING_LABEL, TRACK_DIR, ISSUE_FILE } from './constants.js'
 import { makePrReport, makeReport } from './report.js'
@@ -207,7 +207,7 @@ async function parseAndSetupTest(
   const issueFile = path.join(wd, ISSUE_FILE)
   await fs.writeFile(issueFile, content)
 
-  const { exitCode: exitCode, stdout: stdout } = await aya.execOutput(
+  const { exitCode: exitCode } = await aya.execOutput(
     '--setup-issue',
     issueFile,
     '-o',
@@ -218,17 +218,20 @@ async function parseAndSetupTest(
     return null
   }
 
-  // not sure if this works on windows/macOS
-  const lines = stdout.split('\n')
-  if (lines.length < 2) {
-    throw new Error('Broken output while setting up issue project:\n' + stdout)
+  const metadata = await fs.readFile(path.join(trackDir, "metadata.json"), 'utf-8')
+  // TODO: maybe validate?
+  const output: IssueSetupOutput = JSON.parse(metadata)
+
+  let versionString = null
+  if (output.version != null) {
+    versionString = `${output.version.major}.${output.version.minor}.${output.version.patch}`
+    if (output.version.snapshot) {
+      versionString = versionString + "-SNAPSHOT"
+    }
   }
 
-  const [version, rawFiles] = lines
-  const files = !rawFiles ? [] : rawFiles.split(' ')
-
   return {
-    version: version == 'null' ? null : version,
-    files: files
+    version: versionString,
+    files: output.files
   }
 }

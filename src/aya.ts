@@ -5,6 +5,14 @@ import path from 'path'
 import fs from 'fs'
 import { RichExecOutput } from './types.js'
 
+export type IssueSetupOutput = {
+  version: {
+    major: number, minor: number, patch: number,
+    snapshot: boolean, hash: string | null, java: number
+  },
+  files: string[]
+}
+
 export class Aya {
   cliJar: string
 
