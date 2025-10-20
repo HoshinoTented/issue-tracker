@@ -218,7 +218,10 @@ async function parseAndSetupTest(
     return null
   }
 
-  const metadata = await fs.readFile(path.join(trackDir, "metadata.json"), 'utf-8')
+  const metadata = await fs.readFile(
+    path.join(trackDir, 'metadata.json'),
+    'utf-8'
+  )
   // TODO: maybe validate?
   const output: IssueSetupOutput = JSON.parse(metadata)
 
@@ -226,7 +229,7 @@ async function parseAndSetupTest(
   if (output.version != null) {
     versionString = `${output.version.major}.${output.version.minor}.${output.version.patch}`
     if (output.version.snapshot) {
-      versionString = versionString + "-SNAPSHOT"
+      versionString = versionString + '-SNAPSHOT'
     }
   }
 

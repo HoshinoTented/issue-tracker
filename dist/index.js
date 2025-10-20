@@ -33866,8 +33866,9 @@ function findAya() {
 function makeReport(setupResult, output) {
     // TODO: extends to multi-version case, but this is good for now.
     const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ');
+    const displayVersion = setupResult.version || 'unspecified';
     return `The following aya files are detected: ${fileList}
-Aya Version: \`${setupResult.version}\`
+Aya Version: \`${displayVersion}\`
 
 Exit code: ${output.exitCode}
 Output:
@@ -34115,20 +34116,23 @@ async function setupTrackEnv(wd, track_dir) {
 async function parseAndSetupTest(aya, wd, trackDir, content) {
     const issueFile = path.join(wd, ISSUE_FILE);
     await promises.writeFile(issueFile, content);
-    const { exitCode: exitCode, stdout: stdout } = await aya.execOutput('--setup-issue', issueFile, '-o', trackDir);
+    const { exitCode: exitCode } = await aya.execOutput('--setup-issue', issueFile, '-o', trackDir);
     if (exitCode != 0) {
         return null;
     }
-    // not sure if this works on windows/macOS
-    const lines = stdout.split('\n');
-    if (lines.length < 2) {
-        throw new Error('Broken output while setting up issue project:\n' + stdout);
+    const metadata = await promises.readFile(path.join(trackDir, 'metadata.json'), 'utf-8');
+    // TODO: maybe validate?
+    const output = JSON.parse(metadata);
+    let versionString = null;
+    if (output.version != null) {
+        versionString = `${output.version.major}.${output.version.minor}.${output.version.patch}`;
+        if (output.version.snapshot) {
+            versionString = versionString + '-SNAPSHOT';
+        }
     }
-    const [version, rawFiles] = lines;
-    const files = !rawFiles ? [] : rawFiles.split(' ');
     return {
-        version: version == 'null' ? null : version,
-        files: files
+        version: versionString,
+        files: output.files
     };
 }
 

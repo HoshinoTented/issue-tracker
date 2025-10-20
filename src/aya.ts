@@ -7,9 +7,13 @@ import { RichExecOutput } from './types.js'
 
 export type IssueSetupOutput = {
   version: {
-    major: number, minor: number, patch: number,
-    snapshot: boolean, hash: string | null, java: number
-  },
+    major: number
+    minor: number
+    patch: number
+    snapshot: boolean
+    hash: string | null
+    java: number
+  }
   files: string[]
 }
 

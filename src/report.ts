@@ -11,7 +11,7 @@ export function makeReport(
 ): string {
   // TODO: extends to multi-version case, but this is good for now.
   const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ')
-  const displayVersion = setupResult.version || "unspecified"
+  const displayVersion = setupResult.version || 'unspecified'
   return `The following aya files are detected: ${fileList}
 Aya Version: \`${displayVersion}\`
 
