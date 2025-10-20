@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import * as io from '@actions/io'
 import path from 'path'
-import { promises as fs } from 'fs'
+import { promises as fs, existsSync } from 'fs'
 
 import { Aya, findAya, IssueSetupOutput } from './aya.js'
 import { PrReport, SetupResult, TrackerContext, TrackResult } from './types.js'
@@ -185,6 +185,11 @@ async function trackOne(
 async function setupTrackEnv(wd: string, track_dir: string): Promise<string> {
   // path.resolve == track_dir if track_dir is absolute
   const p = path.resolve(wd, track_dir)
+  if (existsSync(p)) {
+    core.debug('Delete previous working directory: ' + p)
+    io.rmRF(p)
+  }
+
   await io.mkdirP(p)
   return p
 }

@@ -1,6 +1,6 @@
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
-import require$$1, { promises } from 'fs';
+import require$$1, { existsSync, promises } from 'fs';
 import path from 'path';
 import require$$2$1 from 'http';
 import require$$3$1 from 'https';
@@ -34101,6 +34101,10 @@ async function trackOne(ctx, aya, issue, mark) {
 async function setupTrackEnv(wd, track_dir) {
     // path.resolve == track_dir if track_dir is absolute
     const p = path.resolve(wd, track_dir);
+    if (existsSync(p)) {
+        coreExports.debug('Delete previous working directory: ' + p);
+        ioExports.rmRF(p);
+    }
     await ioExports.mkdirP(p);
     return p;
 }
