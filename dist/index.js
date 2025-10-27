@@ -33968,6 +33968,31 @@ async function publishReport(ctx, issue, report) {
         dryRunPrint(`Publish Report to Issue ${issue}`, report);
     }
 }
+/**
+ * @returns a list of number of tracked open issues
+ */
+async function listRepoTrackedIssues(ctx) {
+    const octokit = githubExports.getOctokit(ctx.token);
+    const { data: issueList } = await octokit.rest.issues.listForRepo({
+        owner: ctx.owner,
+        repo: ctx.repo,
+        state: 'open',
+        labels: TRACKING_LABEL
+    });
+    return issueList.map((it) => it.number);
+}
+/**
+ * @returns WHAT THE FUCK IS THIS???????
+ */
+async function getIssueBody(ctx, issue) {
+    const octokit = githubExports.getOctokit(ctx.token);
+    const { data } = await octokit.rest.issues.get({
+        owner: ctx.owner,
+        repo: ctx.repo,
+        issue_number: issue
+    });
+    return data.body;
+}
 
 /**
  * @param issue the issue to track, null if track all
@@ -33981,19 +34006,14 @@ async function track(ctx, issue, pr) {
         if (pr == undefined) {
             // trigerred by master branch update
             coreExports.info("'issue' is not specified, re-run all tracked issues.");
-            const octokit = githubExports.getOctokit(ctx.token);
-            const { data: issueList } = await octokit.rest.issues.listForRepo({
-                owner: ctx.owner,
-                repo: ctx.repo,
-                state: 'open',
-                labels: TRACKING_LABEL
-            });
-            for (const i of issueList) {
+            const issueList = await listRepoTrackedIssues(ctx);
+            for (const number of issueList) {
                 // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
                 // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
-                const success = await trackOneAndReport(ctx, aya, i.number, false);
+                // ^ Never mind
+                const success = await trackOneAndReport(ctx, aya, number, false);
                 if (!success) {
-                    invalids.push(i.number);
+                    invalids.push(number);
                 }
             }
         }
@@ -34059,13 +34079,7 @@ async function trackOneAndReport(ctx, aya, issue, mark) {
  */
 async function trackOne(ctx, aya, issue, mark) {
     return coreExports.group('#' + issue, async () => {
-        const octokit = githubExports.getOctokit(ctx.token);
-        const { data: issueData } = await octokit.rest.issues.get({
-            owner: ctx.owner,
-            repo: ctx.repo,
-            issue_number: issue
-        });
-        const body = issueData.body;
+        const body = await getIssueBody(ctx, issue);
         if (body != null && body != undefined) {
             const wd = process.cwd();
             coreExports.info('Setup tracker working directory');
@@ -34092,11 +34106,16 @@ async function trackOne(ctx, aya, issue, mark) {
                 return null;
             }
         }
-        return null;
+        else {
+            coreExports.info(`The content of issue #${issue} is null`);
+            return null;
+        }
     });
 }
 /**
  * Setup track environment, basically mkdir
+ * @param wd current working directory
+ * @param track_dir the path to the working directory of issue tracker, can be either relative or absolute
  */
 async function setupTrackEnv(wd, track_dir) {
     // path.resolve == track_dir if track_dir is absolute
