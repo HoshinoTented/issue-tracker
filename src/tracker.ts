@@ -144,6 +144,7 @@ async function trackOne(
         // TODO: we need to setup aya of target version, but we have nightly only
         core.info('Run test library')
         const output = await aya.execOutput(
+          ctx.timeout,
           '--remake',
           '--ascii-only',
           '--no-color',
@@ -204,6 +205,7 @@ async function parseAndSetupTest(
   await fs.writeFile(issueFile, content)
 
   const { exitCode: exitCode } = await aya.execOutput(
+    null,
     '--setup-issue',
     issueFile,
     '-o',

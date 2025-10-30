@@ -22,4 +22,6 @@ export type TrackerContext = {
   owner: string
   repo: string
   dry_run: boolean
+  // either positive or null
+  timeout: number | null
 }

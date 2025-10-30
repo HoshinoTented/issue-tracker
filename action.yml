@@ -23,6 +23,10 @@ inputs:
       if set true, all write-action will not performed and will be printed to
       stdout
     default: false
+  run-timeout:
+    description:
+      timeout in seconds of a single track run (issue run), -1 for unlimited.
+    default: -1
 
 runs:
   using: node24

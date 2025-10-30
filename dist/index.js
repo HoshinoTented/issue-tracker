@@ -33827,12 +33827,16 @@ class Aya {
     constructor(cliJar) {
         this.cliJar = cliJar;
     }
-    exec(...args) {
-        return execExports.exec('java', ['-jar', this.cliJar, ...args]);
-    }
-    async execOutput(...args) {
+    // exec(ctx: TrackerContext, ...args: string[]): Promise<number> {
+    //   return exec.exec('java', ['-jar', this.cliJar, ...args])
+    // }
+    async execOutput(timeout, ...args) {
         let stdall = '';
-        const execOutput = await execExports.getExecOutput('java', ['-jar', this.cliJar, ...args], {
+        let commandLine = ['java', '-jar', this.cliJar, ...args];
+        if (timeout != null) {
+            commandLine = ['timeout', timeout + 's'].concat(commandLine);
+        }
+        const execOutput = await execExports.getExecOutput(commandLine[0], commandLine.slice(1), {
             ignoreReturnCode: true,
             listeners: {
                 stdout: (data) => {
@@ -33865,12 +33869,13 @@ function findAya() {
  */
 function makeReport(setupResult, output) {
     // TODO: extends to multi-version case, but this is good for now.
+    const exitCode = output.exitCode == 124 ? 'Timeout' : output.exitCode.toString();
     const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ');
     const displayVersion = setupResult.version || 'unspecified';
     return `The following aya files are detected: ${fileList}
 Aya Version: \`${displayVersion}\`
 
-Exit code: ${output.exitCode}
+Exit code: ${exitCode}
 Output:
 \`\`\`plaintext
 ${output.stdall.trimEnd()}
@@ -34094,7 +34099,7 @@ async function trackOne(ctx, aya, issue, mark) {
                 }
                 // TODO: we need to setup aya of target version, but we have nightly only
                 coreExports.info('Run test library');
-                const output = await aya.execOutput('--remake', '--ascii-only', '--no-color', trackerWd);
+                const output = await aya.execOutput(ctx.timeout, '--remake', '--ascii-only', '--no-color', trackerWd);
                 return {
                     setupResult,
                     execResult: output
@@ -34139,7 +34144,7 @@ async function setupTrackEnv(wd, track_dir) {
 async function parseAndSetupTest(aya, wd, trackDir, content) {
     const issueFile = path.join(wd, ISSUE_FILE);
     await promises.writeFile(issueFile, content);
-    const { exitCode: exitCode } = await aya.execOutput('--setup-issue', issueFile, '-o', trackDir);
+    const { exitCode: exitCode } = await aya.execOutput(null, '--setup-issue', issueFile, '-o', trackDir);
     if (exitCode != 0) {
         return null;
     }
@@ -34170,19 +34175,36 @@ async function run() {
         const issue = coreExports.getInput('issue');
         const pull_request = coreExports.getBooleanInput('pull_request');
         const dry_run = coreExports.getBooleanInput('dry-run');
+        const timeout = coreExports.getInput('run-timeout');
         let issue_number;
         if (issue == '' || issue == 'ALL')
             issue_number = undefined;
-        else
+        else {
             issue_number = parseInt(issue);
+            if (isNaN(issue_number)) {
+                issue_number = undefined;
+            }
+        }
         if (pull_request && issue_number == undefined) {
             throw new Error("Must supply 'issue' when 'pull_request' is set to 'true'");
+        }
+        let run_timeout = parseInt(timeout);
+        if (isNaN(run_timeout)) {
+            throw new Error("value of 'run-timeout' is not a number: " + timeout);
+        }
+        else if (run_timeout == 0) {
+            coreExports.info('Are you serious?');
+            run_timeout = null;
+        }
+        else if (run_timeout < 0) {
+            run_timeout = null;
         }
         track({
             token,
             owner: githubExports.context.repo.owner,
             repo: githubExports.context.repo.repo,
-            dry_run
+            dry_run,
+            timeout: run_timeout
         }, pull_request ? undefined : issue_number, pull_request ? issue_number : undefined);
     }
     catch (error) {
