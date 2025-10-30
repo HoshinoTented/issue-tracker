@@ -12,8 +12,8 @@ export async function run(): Promise<void> {
     const token = core.getInput('token')
     const issue = core.getInput('issue')
     const pull_request = core.getBooleanInput('pull_request')
-    const dry_run = core.getBooleanInput('dry-run')
-    const timeout = core.getInput('run-timeout')
+    const dry_run = core.getBooleanInput('dry_run')
+    const timeout = core.getInput('run_timeout')
 
     let issue_number: number | undefined
     if (issue == '' || issue == 'ALL') issue_number = undefined
@@ -30,9 +30,9 @@ export async function run(): Promise<void> {
       )
     }
 
-    let run_timeout: number | null = parseInt(timeout)
+    let run_timeout: number | null = Number(timeout)
     if (isNaN(run_timeout)) {
-      throw new Error("value of 'run-timeout' is not a number: " + timeout)
+      throw new Error("value of 'run_timeout' is not a number: " + timeout)
     } else if (run_timeout == 0) {
       core.info('Are you serious?')
       run_timeout = null

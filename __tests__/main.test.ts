@@ -15,22 +15,54 @@ jest.unstable_mockModule('@actions/core', () => core)
 // mocks are used in place of any actual dependencies.
 const { run } = await import('../src/main.js')
 
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+function mockCoreInput(data: any) {
+  core.getInput.mockImplementation((name) => {
+    const result = data[name]
+    if (result === undefined) {
+      return ''
+    } else {
+      return result
+    }
+  })
+
+  core.getBooleanInput.mockImplementation((name) => {
+    const result = data[name]
+    if (result == true) return true
+    return false
+  })
+}
+
 describe('main.ts', () => {
   afterEach(() => {
     jest.resetAllMocks()
   })
 
   test("fail on 'issue' == undefined && pull_request == true", async () => {
-    core.getInput.mockImplementation(() => '')
-    core.getBooleanInput.mockImplementation((name) =>
-      name == 'pull_request' ? true : false
-    )
+    const data = {
+      pull_request: true
+    }
+
+    mockCoreInput(data)
 
     await run()
 
     expect(core.setFailed).toHaveBeenNthCalledWith(
       1,
       "Must supply 'issue' when 'pull_request' is set to 'true'"
+    )
+  })
+
+  test("fail on invalid 'run-timeout'", async () => {
+    const data = {
+      run_timeout: 'aaa'
+    }
+    mockCoreInput(data)
+
+    await run()
+    expect(core.setFailed).toHaveBeenNthCalledWith(
+      1,
+      "value of 'run_timeout' is not a number: " + data['run_timeout']
     )
   })
 })

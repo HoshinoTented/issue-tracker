@@ -34174,8 +34174,8 @@ async function run() {
         const token = coreExports.getInput('token');
         const issue = coreExports.getInput('issue');
         const pull_request = coreExports.getBooleanInput('pull_request');
-        const dry_run = coreExports.getBooleanInput('dry-run');
-        const timeout = coreExports.getInput('run-timeout');
+        const dry_run = coreExports.getBooleanInput('dry_run');
+        const timeout = coreExports.getInput('run_timeout');
         let issue_number;
         if (issue == '' || issue == 'ALL')
             issue_number = undefined;
@@ -34188,9 +34188,9 @@ async function run() {
         if (pull_request && issue_number == undefined) {
             throw new Error("Must supply 'issue' when 'pull_request' is set to 'true'");
         }
-        let run_timeout = parseInt(timeout);
+        let run_timeout = Number(timeout);
         if (isNaN(run_timeout)) {
-            throw new Error("value of 'run-timeout' is not a number: " + timeout);
+            throw new Error("value of 'run_timeout' is not a number: " + timeout);
         }
         else if (run_timeout == 0) {
             coreExports.info('Are you serious?');

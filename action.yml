@@ -18,12 +18,12 @@ inputs:
   pull_request:
     description: whether `issue` should be considered a pull request
     default: false
-  dry-run:
+  dry_run:
     description:
       if set true, all write-action will not performed and will be printed to
       stdout
     default: false
-  run-timeout:
+  run_timeout:
     description:
       timeout in seconds of a single track run (issue run), -1 for unlimited.
     default: -1
