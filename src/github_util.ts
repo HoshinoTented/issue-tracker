@@ -121,3 +121,37 @@ export async function publishReport(
     dryRunPrint(`Publish Report to Issue ${issue}`, report)
   }
 }
+
+/**
+ * @returns a list of number of tracked open issues
+ */
+export async function listRepoTrackedIssues(
+  ctx: TrackerContext
+): Promise<number[]> {
+  const octokit = github.getOctokit(ctx.token)
+  const { data: issueList } = await octokit.rest.issues.listForRepo({
+    owner: ctx.owner,
+    repo: ctx.repo,
+    state: 'open',
+    labels: TRACKING_LABEL
+  })
+
+  return issueList.map((it) => it.number)
+}
+
+/**
+ * @returns WHAT THE FUCK IS THIS???????
+ */
+export async function getIssueBody(
+  ctx: TrackerContext,
+  issue: number
+): Promise<string | null | undefined> {
+  const octokit = github.getOctokit(ctx.token)
+  const { data } = await octokit.rest.issues.get({
+    owner: ctx.owner,
+    repo: ctx.repo,
+    issue_number: issue
+  })
+
+  return data.body
+}

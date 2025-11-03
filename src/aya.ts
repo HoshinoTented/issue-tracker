@@ -24,16 +24,25 @@ export class Aya {
     this.cliJar = cliJar
   }
 
-  exec(...args: string[]): Promise<number> {
-    return exec.exec('java', ['-jar', this.cliJar, ...args])
-  }
+  // exec(ctx: TrackerContext, ...args: string[]): Promise<number> {
+  //   return exec.exec('java', ['-jar', this.cliJar, ...args])
+  // }
 
-  async execOutput(...args: string[]): Promise<RichExecOutput> {
+  async execOutput(
+    timeout: number | null,
+    ...args: string[]
+  ): Promise<RichExecOutput> {
     let stdall: string = ''
 
+    let commandLine = ['java', '-jar', this.cliJar, ...args]
+
+    if (timeout != null) {
+      commandLine = ['timeout', timeout + 's'].concat(commandLine)
+    }
+
     const execOutput = await exec.getExecOutput(
-      'java',
-      ['-jar', this.cliJar, ...args],
+      commandLine[0],
+      commandLine.slice(1),
       {
         ignoreReturnCode: true,
         listeners: {

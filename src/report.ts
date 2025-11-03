@@ -10,12 +10,14 @@ export function makeReport(
   output: RichExecOutput
 ): string {
   // TODO: extends to multi-version case, but this is good for now.
+  const exitCode =
+    output.exitCode == 124 ? 'Timeout' : output.exitCode.toString()
   const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ')
   const displayVersion = setupResult.version || 'unspecified'
   return `The following aya files are detected: ${fileList}
 Aya Version: \`${displayVersion}\`
 
-Exit code: ${output.exitCode}
+Exit code: ${exitCode}
 Output:
 \`\`\`plaintext
 ${output.stdall.trimEnd()}

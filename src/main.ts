@@ -12,11 +12,17 @@ export async function run(): Promise<void> {
     const token = core.getInput('token')
     const issue = core.getInput('issue')
     const pull_request = core.getBooleanInput('pull_request')
-    const dry_run = core.getBooleanInput('dry-run')
+    const dry_run = core.getBooleanInput('dry_run')
+    const timeout = core.getInput('run_timeout')
 
     let issue_number: number | undefined
     if (issue == '' || issue == 'ALL') issue_number = undefined
-    else issue_number = parseInt(issue)
+    else {
+      issue_number = parseInt(issue)
+      if (isNaN(issue_number)) {
+        issue_number = undefined
+      }
+    }
 
     if (pull_request && issue_number == undefined) {
       throw new Error(
@@ -24,12 +30,23 @@ export async function run(): Promise<void> {
       )
     }
 
+    let run_timeout: number | null = Number(timeout)
+    if (isNaN(run_timeout)) {
+      throw new Error("value of 'run_timeout' is not a number: " + timeout)
+    } else if (run_timeout == 0) {
+      core.info('Are you serious?')
+      run_timeout = null
+    } else if (run_timeout < 0) {
+      run_timeout = null
+    }
+
     track(
       {
         token,
         owner: github.context.repo.owner,
         repo: github.context.repo.repo,
-        dry_run
+        dry_run,
+        timeout: run_timeout
       },
       pull_request ? undefined : issue_number,
       pull_request ? issue_number : undefined

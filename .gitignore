@@ -103,4 +103,7 @@ __tests__/runner/*
 
 shell.nix
 
-# Test dir
+# Test files
+runner/
+issue-tracker-dir/
+issue.md

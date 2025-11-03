@@ -33827,12 +33827,16 @@ class Aya {
     constructor(cliJar) {
         this.cliJar = cliJar;
     }
-    exec(...args) {
-        return execExports.exec('java', ['-jar', this.cliJar, ...args]);
-    }
-    async execOutput(...args) {
+    // exec(ctx: TrackerContext, ...args: string[]): Promise<number> {
+    //   return exec.exec('java', ['-jar', this.cliJar, ...args])
+    // }
+    async execOutput(timeout, ...args) {
         let stdall = '';
-        const execOutput = await execExports.getExecOutput('java', ['-jar', this.cliJar, ...args], {
+        let commandLine = ['java', '-jar', this.cliJar, ...args];
+        if (timeout != null) {
+            commandLine = ['timeout', timeout + 's'].concat(commandLine);
+        }
+        const execOutput = await execExports.getExecOutput(commandLine[0], commandLine.slice(1), {
             ignoreReturnCode: true,
             listeners: {
                 stdout: (data) => {
@@ -33865,12 +33869,13 @@ function findAya() {
  */
 function makeReport(setupResult, output) {
     // TODO: extends to multi-version case, but this is good for now.
+    const exitCode = output.exitCode == 124 ? 'Timeout' : output.exitCode.toString();
     const fileList = setupResult.files.map((v) => '`' + v + '`').join(' ');
     const displayVersion = setupResult.version || 'unspecified';
     return `The following aya files are detected: ${fileList}
 Aya Version: \`${displayVersion}\`
 
-Exit code: ${output.exitCode}
+Exit code: ${exitCode}
 Output:
 \`\`\`plaintext
 ${output.stdall.trimEnd()}
@@ -33968,6 +33973,31 @@ async function publishReport(ctx, issue, report) {
         dryRunPrint(`Publish Report to Issue ${issue}`, report);
     }
 }
+/**
+ * @returns a list of number of tracked open issues
+ */
+async function listRepoTrackedIssues(ctx) {
+    const octokit = githubExports.getOctokit(ctx.token);
+    const { data: issueList } = await octokit.rest.issues.listForRepo({
+        owner: ctx.owner,
+        repo: ctx.repo,
+        state: 'open',
+        labels: TRACKING_LABEL
+    });
+    return issueList.map((it) => it.number);
+}
+/**
+ * @returns WHAT THE FUCK IS THIS???????
+ */
+async function getIssueBody(ctx, issue) {
+    const octokit = githubExports.getOctokit(ctx.token);
+    const { data } = await octokit.rest.issues.get({
+        owner: ctx.owner,
+        repo: ctx.repo,
+        issue_number: issue
+    });
+    return data.body;
+}
 
 /**
  * @param issue the issue to track, null if track all
@@ -33981,19 +34011,14 @@ async function track(ctx, issue, pr) {
         if (pr == undefined) {
             // trigerred by master branch update
             coreExports.info("'issue' is not specified, re-run all tracked issues.");
-            const octokit = githubExports.getOctokit(ctx.token);
-            const { data: issueList } = await octokit.rest.issues.listForRepo({
-                owner: ctx.owner,
-                repo: ctx.repo,
-                state: 'open',
-                labels: TRACKING_LABEL
-            });
-            for (const i of issueList) {
+            const issueList = await listRepoTrackedIssues(ctx);
+            for (const number of issueList) {
                 // maybe we can reuse `i` instead of query again, but i can't find the type of `i`
                 // ^ RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"] of '@octokit/plugin-rest-endpoint-methods'
-                const success = await trackOneAndReport(ctx, aya, i.number, false);
+                // ^ Never mind
+                const success = await trackOneAndReport(ctx, aya, number, false);
                 if (!success) {
-                    invalids.push(i.number);
+                    invalids.push(number);
                 }
             }
         }
@@ -34059,13 +34084,7 @@ async function trackOneAndReport(ctx, aya, issue, mark) {
  */
 async function trackOne(ctx, aya, issue, mark) {
     return coreExports.group('#' + issue, async () => {
-        const octokit = githubExports.getOctokit(ctx.token);
-        const { data: issueData } = await octokit.rest.issues.get({
-            owner: ctx.owner,
-            repo: ctx.repo,
-            issue_number: issue
-        });
-        const body = issueData.body;
+        const body = await getIssueBody(ctx, issue);
         if (body != null && body != undefined) {
             const wd = process.cwd();
             coreExports.info('Setup tracker working directory');
@@ -34080,7 +34099,7 @@ async function trackOne(ctx, aya, issue, mark) {
                 }
                 // TODO: we need to setup aya of target version, but we have nightly only
                 coreExports.info('Run test library');
-                const output = await aya.execOutput('--remake', '--ascii-only', '--no-color', trackerWd);
+                const output = await aya.execOutput(ctx.timeout, '--remake', '--ascii-only', '--no-color', trackerWd);
                 return {
                     setupResult,
                     execResult: output
@@ -34092,11 +34111,16 @@ async function trackOne(ctx, aya, issue, mark) {
                 return null;
             }
         }
-        return null;
+        else {
+            coreExports.info(`The content of issue #${issue} is null`);
+            return null;
+        }
     });
 }
 /**
  * Setup track environment, basically mkdir
+ * @param wd current working directory
+ * @param track_dir the path to the working directory of issue tracker, can be either relative or absolute
  */
 async function setupTrackEnv(wd, track_dir) {
     // path.resolve == track_dir if track_dir is absolute
@@ -34120,7 +34144,7 @@ async function setupTrackEnv(wd, track_dir) {
 async function parseAndSetupTest(aya, wd, trackDir, content) {
     const issueFile = path.join(wd, ISSUE_FILE);
     await promises.writeFile(issueFile, content);
-    const { exitCode: exitCode } = await aya.execOutput('--setup-issue', issueFile, '-o', trackDir);
+    const { exitCode: exitCode } = await aya.execOutput(null, '--setup-issue', issueFile, '-o', trackDir);
     if (exitCode != 0) {
         return null;
     }
@@ -34150,20 +34174,37 @@ async function run() {
         const token = coreExports.getInput('token');
         const issue = coreExports.getInput('issue');
         const pull_request = coreExports.getBooleanInput('pull_request');
-        const dry_run = coreExports.getBooleanInput('dry-run');
+        const dry_run = coreExports.getBooleanInput('dry_run');
+        const timeout = coreExports.getInput('run_timeout');
         let issue_number;
         if (issue == '' || issue == 'ALL')
             issue_number = undefined;
-        else
+        else {
             issue_number = parseInt(issue);
+            if (isNaN(issue_number)) {
+                issue_number = undefined;
+            }
+        }
         if (pull_request && issue_number == undefined) {
             throw new Error("Must supply 'issue' when 'pull_request' is set to 'true'");
+        }
+        let run_timeout = Number(timeout);
+        if (isNaN(run_timeout)) {
+            throw new Error("value of 'run_timeout' is not a number: " + timeout);
+        }
+        else if (run_timeout == 0) {
+            coreExports.info('Are you serious?');
+            run_timeout = null;
+        }
+        else if (run_timeout < 0) {
+            run_timeout = null;
         }
         track({
             token,
             owner: githubExports.context.repo.owner,
             repo: githubExports.context.repo.repo,
-            dry_run
+            dry_run,
+            timeout: run_timeout
         }, pull_request ? undefined : issue_number, pull_request ? issue_number : undefined);
     }
     catch (error) {
